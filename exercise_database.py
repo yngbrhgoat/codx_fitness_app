@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Optional
 
 
-
 DB_PATH = Path(__file__).with_name("exercises.db")
 
 GOALS = (
@@ -268,6 +267,58 @@ def fetch_all(conn: sqlite3.Connection) -> list[tuple]:
         ORDER BY e.name, r.goal;
         """
     ).fetchall()
+
+
+def add_exercise(
+    *,
+    name: str,
+    short_description: str,
+    required_equipment: str,
+    target_muscle_group: str,
+    goal: str,
+    suitability_rating: int,
+    recommended_sets: Optional[int] = None,
+    recommended_reps_per_set: Optional[int] = None,
+    recommended_time_seconds: Optional[int] = None,
+    icon: str = "",
+    db_path: Path = DB_PATH,
+) -> int:
+    """
+    Insert a new exercise and a single goal recommendation. Returns new exercise id.
+
+    The database constraints enforce goal membership and rating range.
+    """
+    with get_connection(db_path) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO exercises (name, icon, short_description, required_equipment, target_muscle_group)
+            VALUES (?, ?, ?, ?, ?);
+            """,
+            (name, icon, short_description, required_equipment, target_muscle_group),
+        )
+        exercise_id = cursor.lastrowid
+        conn.execute(
+            """
+            INSERT INTO goal_recommendations (
+                exercise_id,
+                goal,
+                suitability_rating,
+                recommended_sets,
+                recommended_reps_per_set,
+                recommended_time_seconds
+            ) VALUES (?, ?, ?, ?, ?, ?);
+            """,
+            (
+                exercise_id,
+                goal,
+                suitability_rating,
+                recommended_sets,
+                recommended_reps_per_set,
+                recommended_time_seconds,
+            ),
+        )
+        conn.commit()
+        return exercise_id
 
 
 if __name__ == "__main__":
