@@ -14,4 +14,4 @@ if __name__ == '__main__':
     print_hi('PyCharm')
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
-print("Das ist ein Test")
+print("Das ist ein zweiter Test")
