@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 
+
 DB_PATH = Path(__file__).with_name("exercises.db")
 
 GOALS = (
