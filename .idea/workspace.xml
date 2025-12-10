@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Ein erster Test">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Issue 1 wurde gefixt">
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,7 +80,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765372553055</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Issue 1 wurde gefixt">
+      <option name="closed" value="true" />
+      <created>1765374078531</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1765374078531</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -96,14 +104,15 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Ein erster Test" />
-    <option name="LAST_COMMIT_MESSAGE" value="Ein erster Test" />
+    <MESSAGE value="Issue 1 wurde gefixt" />
+    <option name="LAST_COMMIT_MESSAGE" value="Issue 1 wurde gefixt" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/main.py</url>
-          <line>8</line>
+          <line>10</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>
