@@ -127,11 +127,12 @@ KV = """
         size_hint_y: None
         height: self.texture_size[1]
     Label:
-        text: root.description
-        color: 0.18, 0.18, 0.24, 1
+        text: root.description if root.show_details else ""
+        color: 0.1, 0.12, 0.18, 1
         text_size: self.width, None
         size_hint_y: None
-        height: self.texture_size[1]
+        height: self.texture_size[1] if root.show_details else 0
+        opacity: 1 if root.show_details else 0
     Label:
         text: "Muscle: {} | Equipment: {}".format(root.muscle_group, root.equipment)
         color: 0.2, 0.2, 0.3, 1
@@ -162,7 +163,7 @@ KV = """
             on_release: app.root.add_recommendation_to_plan(root.name)
         Button:
             text: "Details"
-            on_release: app.root.show_recommendation_details(root.name)
+            on_release: app.root.toggle_recommendation_details(root.name)
 
 <PlanItem>:
     orientation: "horizontal"
@@ -170,6 +171,13 @@ KV = """
     spacing: dp(8)
     size_hint_y: None
     height: dp(60)
+    canvas.before:
+        Color:
+            rgba: 0.9, 0.95, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6,]
     Label:
         text: root.display
         color: 0.18, 0.18, 0.24, 1
@@ -224,39 +232,51 @@ KV = """
                     height: self.minimum_height
                     Button:
                         text: "Home"
-                        font_size: "22sp"
+                        font_size: "26sp"
+                        bold: True
                         background_normal: ""
-                        background_color: 0.9, 0.93, 1, 1
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
                         on_release: app.root.go_home()
                     Button:
                         text: "Browse"
-                        font_size: "22sp"
+                        font_size: "26sp"
+                        bold: True
                         background_normal: ""
-                        background_color: 0.9, 0.93, 1, 1
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
                         on_release: app.root.go_browse()
                     Button:
                         text: "Add"
-                        font_size: "22sp"
+                        font_size: "26sp"
+                        bold: True
                         background_normal: ""
-                        background_color: 0.9, 0.93, 1, 1
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
                         on_release: app.root.go_add()
                     Button:
                         text: "Users"
-                        font_size: "22sp"
+                        font_size: "26sp"
+                        bold: True
                         background_normal: ""
-                        background_color: 0.9, 0.93, 1, 1
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
                         on_release: app.root.go_users()
                     Button:
                         text: "History"
-                        font_size: "22sp"
+                        font_size: "26sp"
+                        bold: True
                         background_normal: ""
-                        background_color: 0.9, 0.93, 1, 1
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
                         on_release: app.root.go_history()
                     Button:
                         text: "Recommend"
-                        font_size: "22sp"
+                        font_size: "26sp"
+                        bold: True
                         background_normal: ""
-                        background_color: 0.9, 0.93, 1, 1
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
                         on_release: app.root.go_recommend()
                 Label:
                     text: "Live Mode (coming soon)"
@@ -916,6 +936,7 @@ class PlanItem(BoxLayout):
     name = StringProperty()
     display = StringProperty()
     index = StringProperty()
+    pass
 
 
 class RecommendationCard(BoxLayout):
@@ -927,6 +948,7 @@ class RecommendationCard(BoxLayout):
     estimated_minutes = StringProperty()
     score_display = StringProperty()
     recommendation = StringProperty()
+    show_details = StringProperty("0")
 
 
 class RootWidget(BoxLayout):
@@ -1467,6 +1489,8 @@ class RootWidget(BoxLayout):
         for record in self.records:
             if record["goal"] != goal_code:
                 continue
+            if any(item["name"] == record["name"] for item in self.rec_plan):
+                continue
             est_minutes = self._estimate_minutes(record)
             recency_days = recency_map.get(record["name"])
             score = self._score_recommendation(
@@ -1499,32 +1523,19 @@ class RootWidget(BoxLayout):
     def _find_recommendation(self, name: str) -> Optional[dict[str, Any]]:
         return next((rec for rec in self.rec_recommendations if rec["name"] == name), None)
 
-    def show_recommendation_details(self, name: str) -> None:
+    def toggle_recommendation_details(self, name: str) -> None:
         rec = self._find_recommendation(name)
         if not rec:
             return
-        detail = (
-            f"{name}\n"
-            f"Goal: {self.rec_goal_spinner_text}\n"
-            f"Muscle: {rec.get('muscle_group', '')}\n"
-            f"Equipment: {rec.get('equipment', '')}\n"
-            f"Suitability: {rec.get('suitability', '')}\n"
-            f"Estimated time: {rec.get('estimated_minutes', '')} min\n"
-            f"Recommendation: {rec.get('recommendation', '')}"
-        )
-        sets = rec.get("sets")
-        reps = rec.get("reps")
-        time_seconds = rec.get("time_seconds")
-        extras = []
-        if sets:
-            extras.append(f"Sets: {sets}")
-        if reps:
-            extras.append(f"Reps: {reps}")
-        if time_seconds:
-            extras.append(f"Time: {time_seconds}s")
-        if extras:
-            detail += "\n" + " | ".join(extras)
-        self._set_rec_status(detail)
+        # flip detail visibility for this item
+        current = rec.get("show_details") == "1"
+        for r in self.rec_recommendations:
+            if r["name"] == name:
+                r["show_details"] = "0" if current else "1"
+            else:
+                r["show_details"] = r.get("show_details", "0")
+        self._recommend_screen().ids.rec_list.data = self.rec_recommendations
+        self._set_rec_status("Details toggled.")
 
     def add_recommendation_to_plan(self, name: str) -> None:
         rec = self._find_recommendation(name)
@@ -1541,6 +1552,9 @@ class RootWidget(BoxLayout):
         self.rec_plan.append(plan_item)
         self._refresh_recommendation_view()
         self._set_rec_status(f"Added {name} to plan.")
+        # Remove from recommendations list when selected.
+        self.rec_recommendations = [r for r in self.rec_recommendations if r["name"] != name]
+        self._recommend_screen().ids.rec_list.data = self.rec_recommendations
 
     def _refresh_recommendation_view(self) -> None:
         rv = self._recommend_screen().ids.rec_plan_list
