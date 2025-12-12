@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 
 DB_PATH = Path(__file__).with_name("exercises.db")
@@ -24,6 +24,35 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
 
 def create_schema(conn: sqlite3.Connection) -> None:
     """Create tables to store exercises and per-goal recommendations."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE
+        );
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS workouts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            performed_at TEXT NOT NULL,
+            duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        );
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS workout_exercises (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            workout_id INTEGER NOT NULL,
+            exercise_name TEXT NOT NULL,
+            FOREIGN KEY (workout_id) REFERENCES workouts (id) ON DELETE CASCADE
+        );
+        """
+    )
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS exercises (
@@ -319,6 +348,100 @@ def add_exercise(
         )
         conn.commit()
         return exercise_id
+
+
+def add_user(username: str, *, db_path: Path = DB_PATH) -> int:
+    """Register a new user and return the user id."""
+    username = username.strip()
+    if not username:
+        raise ValueError("Username is required.")
+    with get_connection(db_path) as conn:
+        cursor = conn.execute("INSERT INTO users (username) VALUES (?);", (username,))
+        conn.commit()
+        return cursor.lastrowid
+
+
+def fetch_users(conn: sqlite3.Connection) -> list[tuple[int, str]]:
+    """Return a list of user ids and usernames."""
+    return conn.execute("SELECT id, username FROM users ORDER BY username;").fetchall()
+
+
+def log_workout(
+    *,
+    user_id: int,
+    performed_at: str,
+    duration_minutes: int,
+    exercises: Sequence[str],
+    db_path: Path = DB_PATH,
+) -> int:
+    """Persist a completed workout for a user and return the workout id."""
+    if duration_minutes <= 0:
+        raise ValueError("Duration must be positive.")
+    cleaned_exercises = [ex.strip() for ex in exercises if ex.strip()]
+    if not cleaned_exercises:
+        raise ValueError("At least one exercise is required.")
+
+    with get_connection(db_path) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO workouts (user_id, performed_at, duration_minutes)
+            VALUES (?, ?, ?);
+            """,
+            (user_id, performed_at, duration_minutes),
+        )
+        workout_id = cursor.lastrowid
+        conn.executemany(
+            "INSERT INTO workout_exercises (workout_id, exercise_name) VALUES (?, ?);",
+            [(workout_id, ex) for ex in cleaned_exercises],
+        )
+        conn.commit()
+        return workout_id
+
+
+def fetch_workout_history(
+    user_id: int,
+    *,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db_path: Path = DB_PATH,
+) -> list[dict[str, object]]:
+    """
+    Return workouts for a user with exercises aggregated per session.
+
+    Dates are compared using SQLite's date() to respect YYYY-MM-DD strings.
+    """
+    query = """
+        SELECT w.id, w.performed_at, w.duration_minutes, we.exercise_name
+        FROM workouts w
+        LEFT JOIN workout_exercises we ON w.id = we.workout_id
+        WHERE w.user_id = ?
+    """
+    params: list[object] = [user_id]
+    if start_date:
+        query += " AND date(w.performed_at) >= date(?)"
+        params.append(start_date)
+    if end_date:
+        query += " AND date(w.performed_at) <= date(?)"
+        params.append(end_date)
+    query += " ORDER BY w.performed_at DESC, w.id DESC;"
+
+    with get_connection(db_path) as conn:
+        rows = conn.execute(query, params).fetchall()
+
+    grouped: dict[int, dict[str, object]] = {}
+    for workout_id, performed_at, duration_minutes, exercise_name in rows:
+        entry = grouped.setdefault(
+            workout_id,
+            {
+                "workout_id": workout_id,
+                "performed_at": performed_at,
+                "duration_minutes": duration_minutes,
+                "exercises": [],
+            },
+        )
+        if exercise_name:
+            entry["exercises"].append(exercise_name)
+    return list(grouped.values())
 
 
 if __name__ == "__main__":

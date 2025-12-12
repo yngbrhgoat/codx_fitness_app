@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 from typing import Any, Optional
 
 from kivy.app import App
@@ -73,6 +74,38 @@ KV = """
         size_hint_y: None
         height: self.texture_size[1]
         text_size: self.width, None
+
+<WorkoutCard>:
+    orientation: "vertical"
+    padding: dp(12)
+    spacing: dp(6)
+    size_hint_y: None
+    height: self.minimum_height
+    canvas.before:
+        Color:
+            rgba: 0.96, 0.97, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8,]
+    Label:
+        text: root.date_display
+        font_size: "17sp"
+        bold: True
+        color: 0.1, 0.12, 0.2, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: "Duration: {} min".format(root.duration_display)
+        color: 0.18, 0.18, 0.22, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: root.exercises_display
+        color: 0.2, 0.2, 0.28, 1
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
 
 <HomeScreen>:
     BoxLayout:
@@ -300,6 +333,190 @@ KV = """
                 size_hint_y: None
                 height: dp(18)
 
+<UserScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(10)
+        canvas.before:
+            Color:
+                rgba: 0.98, 0.98, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Label:
+            text: "User registration & selection"
+            font_size: "18sp"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(26)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(44)
+            spacing: dp(8)
+            TextInput:
+                id: username_input
+                hint_text: "New username"
+                multiline: False
+            Button:
+                text: "Register"
+                size_hint_x: None
+                width: dp(120)
+                on_release: app.root.handle_register_user()
+        Label:
+            text: app.root.user_status_text
+            color: app.root.user_status_color
+            size_hint_y: None
+            height: dp(20)
+        Label:
+            text: "Select user"
+            color: 0.18, 0.18, 0.22, 1
+            size_hint_y: None
+            height: dp(20)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(44)
+            spacing: dp(8)
+            Spinner:
+                id: user_spinner
+                text: app.root.user_spinner_text
+                values: app.root.user_options
+                on_text: app.root.on_user_selected(self.text)
+            Button:
+                text: "Open history"
+                size_hint_x: None
+                width: dp(140)
+                on_release: app.root.go_history()
+        Label:
+            text: "Current user: {}".format(app.root.current_user_display)
+            color: 0.2, 0.2, 0.3, 1
+            size_hint_y: None
+            height: dp(22)
+
+<HistoryScreen>:
+    ScrollView:
+        do_scroll_x: False
+        BoxLayout:
+            orientation: "vertical"
+            padding: dp(12)
+            spacing: dp(10)
+            size_hint_y: None
+            height: self.minimum_height
+            canvas.before:
+                Color:
+                    rgba: 0.98, 0.98, 1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "Workout history"
+                font_size: "18sp"
+                bold: True
+                color: 0.12, 0.14, 0.22, 1
+                size_hint_y: None
+                height: dp(26)
+            Label:
+                text: "Current user: {}".format(app.root.current_user_display)
+                color: 0.2, 0.2, 0.3, 1
+                size_hint_y: None
+                height: dp(22)
+            GridLayout:
+                cols: 2
+                spacing: dp(8)
+                row_default_height: dp(34)
+                size_hint_y: None
+                height: self.minimum_height
+                Label:
+                    text: "Start date (YYYY-MM-DD)"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    id: start_date_input
+                    multiline: False
+                    hint_text: "optional"
+                Label:
+                    text: "End date (YYYY-MM-DD)"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    id: end_date_input
+                    multiline: False
+                    hint_text: "optional"
+            BoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(8)
+                Button:
+                    text: "Apply filter"
+                    on_release: app.root.apply_history_filter()
+                Button:
+                    text: "Clear filter"
+                    on_release: app.root.clear_history_filter()
+            Label:
+                text: "Log a completed workout"
+                bold: True
+                color: 0.14, 0.16, 0.24, 1
+                size_hint_y: None
+                height: dp(22)
+            GridLayout:
+                cols: 2
+                spacing: dp(8)
+                row_default_height: dp(34)
+                size_hint_y: None
+                height: self.minimum_height
+                Label:
+                    text: "Workout date (YYYY-MM-DD)"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    id: workout_date_input
+                    multiline: False
+                    hint_text: "e.g. 2025-12-10"
+                Label:
+                    text: "Duration (minutes)"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    id: duration_input
+                    multiline: False
+                    input_filter: "int"
+                    hint_text: "e.g. 45"
+                Label:
+                    text: "Exercises (comma or newline separated)"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    id: exercises_input
+                    multiline: True
+                    size_hint_y: None
+                    height: dp(80)
+                    hint_text: "Push-Up, Plank, Jump Rope"
+            BoxLayout:
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(8)
+                Button:
+                    text: "Save workout"
+                    on_release: app.root.handle_add_workout()
+                Button:
+                    text: "Refresh history"
+                    on_release: app.root._load_history()
+            Label:
+                text: app.root.history_status_text
+                color: app.root.history_status_color
+                size_hint_y: None
+                height: dp(20)
+            RecycleView:
+                id: history_list
+                viewclass: "WorkoutCard"
+                bar_width: dp(6)
+                scroll_type: ['bars', 'content']
+                size_hint_y: None
+                height: dp(400)
+                RecycleBoxLayout:
+                    default_size: None, dp(120)
+                    default_size_hint: 1, None
+                    size_hint_y: None
+                    height: self.minimum_height
+                    orientation: "vertical"
+                    spacing: dp(10)
+
 <RootWidget>:
     orientation: "vertical"
     canvas.before:
@@ -341,6 +558,16 @@ KV = """
             size_hint_x: None
             width: dp(90)
             on_release: root.go_add()
+        Button:
+            text: "Users"
+            size_hint_x: None
+            width: dp(90)
+            on_release: root.go_users()
+        Button:
+            text: "History"
+            size_hint_x: None
+            width: dp(90)
+            on_release: root.go_history()
 
     ScreenManager:
         id: screen_manager
@@ -350,6 +577,10 @@ KV = """
             name: "browse"
         AddScreen:
             name: "add"
+        UserScreen:
+            name: "user"
+        HistoryScreen:
+            name: "history"
 """
 
 
@@ -375,6 +606,20 @@ class AddScreen(Screen):
     pass
 
 
+class UserScreen(Screen):
+    pass
+
+
+class HistoryScreen(Screen):
+    pass
+
+
+class WorkoutCard(BoxLayout):
+    date_display = StringProperty()
+    duration_display = StringProperty()
+    exercises_display = StringProperty()
+
+
 class RootWidget(BoxLayout):
     goal_options = ListProperty()
     goal_choice_options = ListProperty()
@@ -382,6 +627,7 @@ class RootWidget(BoxLayout):
     equipment_choice_options = ListProperty()
     muscle_options = ListProperty()
     equipment_options = ListProperty()
+    user_options = ListProperty()
 
     goal_spinner_text = StringProperty("All goals")
     muscle_spinner_text = StringProperty("All muscle groups")
@@ -398,6 +644,12 @@ class RootWidget(BoxLayout):
     status_color = ListProperty((0.14, 0.4, 0.2, 1))
     muscle_choice_display = StringProperty("")
     equipment_choice_display = StringProperty("")
+    user_spinner_text = StringProperty("Select user")
+    current_user_display = StringProperty("No user selected")
+    user_status_text = StringProperty("")
+    user_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    history_status_text = StringProperty("")
+    history_status_color = ListProperty((0.14, 0.4, 0.2, 1))
 
     def __init__(self, **kwargs):
         app = App.get_running_app()
@@ -406,6 +658,10 @@ class RootWidget(BoxLayout):
             app.root = self
         super().__init__(**kwargs)
         self.records: list[dict[str, Any]] = []
+        self._users: list[dict[str, Any]] = []
+        self.current_user_id: Optional[int] = None
+        self.history_start: Optional[str] = None
+        self.history_end: Optional[str] = None
         self._goal_label_map = {self._pretty_goal(goal): goal for goal in exercise_database.GOALS}
         Clock.schedule_once(self._bootstrap_data, 0)
 
@@ -419,6 +675,8 @@ class RootWidget(BoxLayout):
             self.add_goal_spinner_text = self.goal_choice_options[0]
         self._update_filter_options()
         self.apply_filters()
+        self._load_users()
+        self._prefill_workout_date()
 
     def _load_records(self) -> list[dict[str, Any]]:
         with exercise_database.get_connection() as conn:
@@ -499,6 +757,22 @@ class RootWidget(BoxLayout):
     def _add_screen(self) -> AddScreen:
         return self.ids.screen_manager.get_screen("add")
 
+    def _user_screen(self) -> UserScreen:
+        return self.ids.screen_manager.get_screen("user")
+
+    def _history_screen(self) -> HistoryScreen:
+        return self.ids.screen_manager.get_screen("history")
+
+    def _prefill_workout_date(self) -> None:
+        """Populate the workout date field with today's date if available."""
+        try:
+            history_screen = self._history_screen()
+        except Exception:
+            return
+        date_field = history_screen.ids.get("workout_date_input")
+        if date_field and not date_field.text:
+            date_field.text = date.today().isoformat()
+
     def on_goal_change(self, value: str) -> None:
         self.filter_goal = "All" if value == "All goals" else self._goal_label_map.get(value, "All")
         self.goal_spinner_text = value
@@ -535,6 +809,191 @@ class RootWidget(BoxLayout):
                 }
             )
         self._browse_screen().ids.exercise_list.data = filtered
+
+    def _load_users(self) -> None:
+        with exercise_database.get_connection() as conn:
+            rows = exercise_database.fetch_users(conn)
+        self._users = [{"id": user_id, "username": username} for user_id, username in rows]
+        self.user_options = [u["username"] for u in self._users]
+
+        if self.current_user_id and not any(u["id"] == self.current_user_id for u in self._users):
+            self.current_user_id = None
+
+        if not self.current_user_id and self._users:
+            selected = self._users[0]
+            self.current_user_id = selected["id"]
+            self.current_user_display = selected["username"]
+            self.user_spinner_text = selected["username"]
+        elif self.current_user_id:
+            current = next((u for u in self._users if u["id"] == self.current_user_id), None)
+            if current:
+                self.current_user_display = current["username"]
+                self.user_spinner_text = current["username"]
+
+        if not self.current_user_id:
+            self.current_user_display = "No user selected"
+            self.user_spinner_text = "Select user"
+
+        self._load_history()
+
+    def _set_user_status(self, message: str, *, error: bool = False) -> None:
+        self.user_status_text = message
+        self.user_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def handle_register_user(self) -> None:
+        ids = self._user_screen().ids
+        username = ids.username_input.text.strip()
+        if not username:
+            self._set_user_status("Username is required.", error=True)
+            return
+
+        try:
+            new_user_id = exercise_database.add_user(username=username)
+        except ValueError as exc:
+            self._set_user_status(str(exc), error=True)
+            return
+        except sqlite3.IntegrityError:
+            self._set_user_status("Username already exists. Choose another.", error=True)
+            return
+        except sqlite3.DatabaseError as exc:
+            self._set_user_status(f"Database error: {exc}", error=True)
+            return
+
+        ids.username_input.text = ""
+        self.current_user_id = new_user_id
+        self.current_user_display = username
+        self.user_spinner_text = username
+        self._set_user_status(f"User '{username}' registered.")
+        self._load_users()
+
+    def on_user_selected(self, username: str) -> None:
+        selected = next((u for u in self._users if u["username"] == username), None)
+        if not selected:
+            return
+        self.current_user_id = selected["id"]
+        self.current_user_display = selected["username"]
+        self.user_spinner_text = selected["username"]
+        self._set_user_status(f"User '{username}' selected.")
+        self._load_history()
+
+    def _split_exercises(self, raw: str) -> list[str]:
+        normalized = raw.replace("\n", ",")
+        return [part.strip() for part in normalized.split(",") if part.strip()]
+
+    def _parse_date_value(self, value: str, *, allow_empty: bool = False) -> Optional[str]:
+        value = value.strip()
+        if not value:
+            if allow_empty:
+                return None
+            raise ValueError("Date is required (YYYY-MM-DD).")
+        try:
+            parsed = date.fromisoformat(value)
+        except ValueError:
+            raise ValueError("Use YYYY-MM-DD format.")
+        return parsed.isoformat()
+
+    def _set_history_status(self, message: str, *, error: bool = False) -> None:
+        self.history_status_text = message
+        self.history_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def _load_history(self, *_: Any) -> None:
+        try:
+            history_screen = self._history_screen()
+        except Exception:
+            return
+
+        if not self.current_user_id:
+            history_screen.ids.history_list.data = []
+            self._set_history_status("Select or register a user to see history.", error=False)
+            return
+
+        try:
+            history_entries = exercise_database.fetch_workout_history(
+                self.current_user_id,
+                start_date=self.history_start,
+                end_date=self.history_end,
+            )
+        except sqlite3.DatabaseError as exc:
+            self._set_history_status(f"Database error: {exc}", error=True)
+            return
+
+        data = []
+        for entry in history_entries:
+            exercises_display = ", ".join(entry.get("exercises", [])) if entry.get("exercises") else "No exercises recorded"
+            data.append(
+                {
+                    "date_display": entry["performed_at"],
+                    "duration_display": str(entry["duration_minutes"]),
+                    "exercises_display": exercises_display,
+                }
+            )
+        history_screen.ids.history_list.data = data
+        if data:
+            self._set_history_status(f"{len(data)} workout(s) loaded.")
+        else:
+            self._set_history_status("No workouts in this date range.", error=False)
+
+    def apply_history_filter(self) -> None:
+        ids = self._history_screen().ids
+        try:
+            self.history_start = self._parse_date_value(ids.start_date_input.text, allow_empty=True)
+            self.history_end = self._parse_date_value(ids.end_date_input.text, allow_empty=True)
+        except ValueError as exc:
+            self._set_history_status(str(exc), error=True)
+            return
+        self._load_history()
+
+    def clear_history_filter(self) -> None:
+        ids = self._history_screen().ids
+        ids.start_date_input.text = ""
+        ids.end_date_input.text = ""
+        self.history_start = None
+        self.history_end = None
+        self._set_history_status("Filters cleared.")
+        self._load_history()
+
+    def handle_add_workout(self) -> None:
+        if not self.current_user_id:
+            self._set_history_status("Select or register a user first.", error=True)
+            return
+
+        ids = self._history_screen().ids
+        try:
+            workout_date = self._parse_date_value(ids.workout_date_input.text, allow_empty=False)
+        except ValueError as exc:
+            self._set_history_status(str(exc), error=True)
+            return
+
+        duration_raw = ids.duration_input.text.strip()
+        try:
+            duration_minutes = int(duration_raw)
+            if duration_minutes <= 0:
+                raise ValueError
+        except ValueError:
+            self._set_history_status("Duration must be a positive number of minutes.", error=True)
+            return
+
+        exercises = self._split_exercises(ids.exercises_input.text)
+        if not exercises:
+            self._set_history_status("Add at least one exercise.", error=True)
+            return
+
+        try:
+            exercise_database.log_workout(
+                user_id=self.current_user_id,
+                performed_at=workout_date,
+                duration_minutes=duration_minutes,
+                exercises=exercises,
+            )
+        except (ValueError, sqlite3.DatabaseError) as exc:
+            self._set_history_status(str(exc), error=True)
+            return
+
+        self._set_history_status("Workout saved.")
+        ids.duration_input.text = ""
+        ids.exercises_input.text = ""
+        self._prefill_workout_date()
+        self._load_history()
 
     def _parse_optional_int(self, value: str) -> Optional[int]:
         value = value.strip()
@@ -644,6 +1103,14 @@ class RootWidget(BoxLayout):
 
     def go_add(self) -> None:
         self.ids.screen_manager.current = "add"
+
+    def go_users(self) -> None:
+        self.ids.screen_manager.current = "user"
+
+    def go_history(self) -> None:
+        self.ids.screen_manager.current = "history"
+        self._prefill_workout_date()
+        self._load_history()
 
 
 class ExerciseApp(App):
