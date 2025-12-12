@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Hinzufügen eines Bildschirms zum Durchsuchen aller Übungen mit Filterung bereitgestellt nach jeweils: Zieleignung, Muskelgruppe, Benötigte Ausrüstung">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exercise_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/exercise_database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,7 +114,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765384705585</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!">
+      <option name="closed" value="true" />
+      <created>1765388280889</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1765388280889</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -135,7 +141,8 @@
     <MESSAGE value="Issue 1 wurde gefixt" />
     <MESSAGE value="Wo ist der Fehler?" />
     <MESSAGE value="Hinzufügen eines Bildschirms zum Durchsuchen aller Übungen mit Filterung bereitgestellt nach jeweils: Zieleignung, Muskelgruppe, Benötigte Ausrüstung" />
-    <option name="LAST_COMMIT_MESSAGE" value="Hinzufügen eines Bildschirms zum Durchsuchen aller Übungen mit Filterung bereitgestellt nach jeweils: Zieleignung, Muskelgruppe, Benötigte Ausrüstung" />
+    <MESSAGE value="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!" />
+    <option name="LAST_COMMIT_MESSAGE" value="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
