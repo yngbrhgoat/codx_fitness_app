@@ -484,6 +484,34 @@ KV = """
                 color: 0.14, 0.16, 0.24, 1
                 size_hint_y: None
                 height: dp(22)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(70)
+                spacing: dp(12)
+                BoxLayout:
+                    orientation: "vertical"
+                    spacing: dp(4)
+                    Label:
+                        text: "Stats"
+                        bold: True
+                        color: 0.12, 0.14, 0.22, 1
+                        size_hint_y: None
+                        height: dp(20)
+                    Label:
+                        text: "Total workouts: {}".format(app.root.stats_total_workouts)
+                        color: 0.18, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(18)
+                    Label:
+                        text: "Total time: {} min".format(app.root.stats_total_minutes)
+                        color: 0.18, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(18)
+                    Label:
+                        text: "Top exercise: {}".format(app.root.stats_top_exercise)
+                        color: 0.18, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(18)
             GridLayout:
                 cols: 2
                 spacing: dp(8)
@@ -677,6 +705,9 @@ class RootWidget(BoxLayout):
     user_status_color = ListProperty((0.14, 0.4, 0.2, 1))
     history_status_text = StringProperty("")
     history_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    stats_total_workouts = StringProperty("0")
+    stats_total_minutes = StringProperty("0")
+    stats_top_exercise = StringProperty("—")
 
     def __init__(self, **kwargs):
         app = App.get_running_app()
@@ -946,6 +977,7 @@ class RootWidget(BoxLayout):
         if not self.current_user_id:
             history_screen.ids.history_list.data = []
             self._set_history_status("Select or register a user to see history.", error=False)
+            self._load_stats(clear=True)
             return
 
         try:
@@ -973,6 +1005,7 @@ class RootWidget(BoxLayout):
             self._set_history_status(f"{len(data)} workout(s) loaded.")
         else:
             self._set_history_status("No workouts in this date range.", error=False)
+        self._load_stats()
 
     def apply_history_filter(self) -> None:
         ids = self._history_screen().ids
@@ -1035,6 +1068,31 @@ class RootWidget(BoxLayout):
         ids.exercises_input.text = ""
         self._prefill_workout_date()
         self._load_history()
+
+    def _load_stats(self, *, clear: bool = False) -> None:
+        if clear or not self.current_user_id:
+            self.stats_total_workouts = "0"
+            self.stats_total_minutes = "0"
+            self.stats_top_exercise = "—"
+            return
+        try:
+            stats = exercise_database.fetch_workout_stats(
+                self.current_user_id,
+                start_date=self.history_start,
+                end_date=self.history_end,
+            )
+        except sqlite3.DatabaseError as exc:
+            self._set_history_status(f"Database error while loading stats: {exc}", error=True)
+            return
+
+        self.stats_total_workouts = str(stats.get("total_workouts", 0))
+        self.stats_total_minutes = str(stats.get("total_minutes", 0))
+        top = stats.get("top_exercise")
+        if top:
+            count = stats.get("top_exercise_count", 0)
+            self.stats_top_exercise = f"{top} ({count}x)"
+        else:
+            self.stats_top_exercise = "—"
 
     def _parse_optional_int(self, value: str) -> Optional[int]:
         value = value.strip()

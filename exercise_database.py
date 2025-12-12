@@ -444,6 +444,61 @@ def fetch_workout_history(
     return list(grouped.values())
 
 
+def fetch_workout_stats(
+    user_id: int,
+    *,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db_path: Path = DB_PATH,
+) -> dict[str, object]:
+    """Aggregate stats for a user's workouts."""
+    stats = {
+        "total_workouts": 0,
+        "total_minutes": 0,
+        "top_exercise": None,
+        "top_exercise_count": 0,
+    }
+
+    filters = ["user_id = ?"]
+    params: list[object] = [user_id]
+    if start_date:
+        filters.append("date(performed_at) >= date(?)")
+        params.append(start_date)
+    if end_date:
+        filters.append("date(performed_at) <= date(?)")
+        params.append(end_date)
+    filter_clause = " AND ".join(filters)
+
+    with get_connection(db_path) as conn:
+        total_row = conn.execute(
+            f"""
+            SELECT COUNT(*), COALESCE(SUM(duration_minutes), 0)
+            FROM workouts
+            WHERE {filter_clause};
+            """,
+            params,
+        ).fetchone()
+        stats["total_workouts"] = total_row[0]
+        stats["total_minutes"] = total_row[1]
+
+        top_row = conn.execute(
+            f"""
+            SELECT we.exercise_name, COUNT(*) AS cnt
+            FROM workouts w
+            JOIN workout_exercises we ON w.id = we.workout_id
+            WHERE {filter_clause}
+            GROUP BY we.exercise_name
+            ORDER BY cnt DESC, we.exercise_name ASC
+            LIMIT 1;
+            """,
+            params,
+        ).fetchone()
+        if top_row:
+            stats["top_exercise"] = top_row[0]
+            stats["top_exercise_count"] = top_row[1]
+    return stats
+
+
 if __name__ == "__main__":
     path = initialize_database()
     print(f"Database ready at {path.resolve()}")
