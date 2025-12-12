@@ -499,6 +499,44 @@ def fetch_workout_stats(
     return stats
 
 
+def fetch_recent_exercise_usage(
+    user_id: int,
+    *,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
+    db_path: Path = DB_PATH,
+) -> list[tuple[str, str]]:
+    """
+    Return a list of (exercise_name, performed_at) sorted from newest to oldest.
+
+    Used to bias recommendations toward less recently performed movements.
+    """
+    filters = ["w.user_id = ?"]
+    params: list[object] = [user_id]
+    if start_date:
+        filters.append("date(w.performed_at) >= date(?)")
+        params.append(start_date)
+    if end_date:
+        filters.append("date(w.performed_at) <= date(?)")
+        params.append(end_date)
+    filter_clause = " AND ".join(filters)
+
+    with get_connection(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT we.exercise_name, w.performed_at
+            FROM workouts w
+            JOIN workout_exercises we ON w.id = we.workout_id
+            WHERE {filter_clause}
+            ORDER BY w.performed_at DESC
+            LIMIT ?;
+            """,
+            (*params, limit),
+        ).fetchall()
+    return rows
+
+
 if __name__ == "__main__":
     path = initialize_database()
     print(f"Database ready at {path.resolve()}")

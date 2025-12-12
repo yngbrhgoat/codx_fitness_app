@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Optional
 
 from kivy.app import App
@@ -10,6 +10,7 @@ from kivy.lang import Builder
 from kivy.properties import ListProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
+from kivy.metrics import dp
 
 import exercise_database
 
@@ -106,6 +107,92 @@ KV = """
         text_size: self.width, None
         size_hint_y: None
         height: self.texture_size[1]
+
+<RecommendationCard>:
+    orientation: "vertical"
+    padding: dp(12)
+    spacing: dp(6)
+    size_hint_y: None
+    height: self.minimum_height
+    canvas.before:
+        Color:
+            rgba: 0.96, 0.97, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8,]
+    Label:
+        text: root.name
+        font_size: "17sp"
+        bold: True
+        color: 0.1, 0.12, 0.2, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: root.description
+        color: 0.18, 0.18, 0.24, 1
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: "Muscle: {} | Equipment: {}".format(root.muscle_group, root.equipment)
+        color: 0.2, 0.2, 0.3, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: "Suitability: {} | Est. time: {} min".format(root.suitability, root.estimated_minutes)
+        color: 0.2, 0.2, 0.3, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: "Recommendation score: {}".format(root.score_display)
+        color: 0.16, 0.16, 0.22, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: root.recommendation
+        color: 0.18, 0.18, 0.24, 1
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+    BoxLayout:
+        size_hint_y: None
+        height: dp(36)
+        spacing: dp(8)
+        Button:
+            text: "Add to plan"
+            on_release: app.root.add_recommendation_to_plan(root.name)
+        Button:
+            text: "Details"
+            on_release: app.root.show_recommendation_details(root.name)
+
+<PlanItem>:
+    orientation: "horizontal"
+    padding: dp(8)
+    spacing: dp(8)
+    size_hint_y: None
+    height: dp(60)
+    Label:
+        text: root.display
+        color: 0.18, 0.18, 0.24, 1
+        text_size: self.width, None
+        halign: "left"
+        valign: "middle"
+    Button:
+        text: "Up"
+        size_hint_x: None
+        width: dp(70)
+        on_release: app.root.move_plan_item(root.name, -1)
+    Button:
+        text: "Down"
+        size_hint_x: None
+        width: dp(70)
+        on_release: app.root.move_plan_item(root.name, 1)
+    Button:
+        text: "Remove"
+        size_hint_x: None
+        width: dp(90)
+        on_release: app.root.remove_plan_item(root.name)
 
 <HomeScreen>:
     BoxLayout:
@@ -572,6 +659,102 @@ KV = """
                     orientation: "vertical"
                     spacing: dp(10)
 
+<RecommendationScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(10)
+        canvas.before:
+            Color:
+                rgba: 0.98, 0.98, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        GridLayout:
+            cols: 2
+            spacing: dp(8)
+            row_default_height: dp(34)
+            size_hint_y: None
+            height: self.minimum_height
+            Label:
+                text: "Goal"
+                color: 0.18, 0.18, 0.22, 1
+            Spinner:
+                id: rec_goal_spinner
+                text: app.root.rec_goal_spinner_text
+                values: app.root.goal_choice_options
+                on_text: app.root.rec_goal_spinner_text = self.text
+            Label:
+                text: "Max time (minutes)"
+                color: 0.18, 0.18, 0.22, 1
+            TextInput:
+                id: rec_max_time
+                text: app.root.rec_max_minutes_text
+                multiline: False
+                input_filter: "int"
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(8)
+            Button:
+                text: "Generate recommendations"
+                on_release: app.root.handle_generate_recommendations()
+            Button:
+                text: "Clear plan"
+                on_release: app.root.clear_recommendation_plan()
+        Label:
+            text: app.root.rec_status_text
+            color: app.root.rec_status_color
+            size_hint_y: None
+            height: dp(20)
+        Label:
+            text: "Recommended exercises"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(22)
+        RecycleView:
+            id: rec_list
+            viewclass: "RecommendationCard"
+            bar_width: dp(6)
+            scroll_type: ['bars', 'content']
+            size_hint_y: 0.45
+            RecycleBoxLayout:
+                default_size: None, None
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: "vertical"
+                spacing: dp(10)
+        Label:
+            text: "Your training plan (reorder with Up/Down)"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(22)
+        RecycleView:
+            id: rec_plan_list
+            viewclass: "PlanItem"
+            bar_width: dp(6)
+            scroll_type: ['bars', 'content']
+            size_hint_y: 0.35
+            RecycleBoxLayout:
+                default_size: None, dp(70)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: "vertical"
+                spacing: dp(6)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            spacing: dp(8)
+            Label:
+                text: "Total time: {} / {} min".format(app.root.rec_total_minutes, app.root.rec_max_minutes_text or "0")
+                color: 0.18, 0.18, 0.24, 1
+            Button:
+                text: "Start training"
+                on_release: app.root.handle_start_training()
 <RootWidget>:
     orientation: "vertical"
     canvas.before:
@@ -623,6 +806,11 @@ KV = """
             size_hint_x: None
             width: dp(90)
             on_release: root.go_history()
+        Button:
+            text: "Recommend"
+            size_hint_x: None
+            width: dp(110)
+            on_release: root.go_recommend()
 
     ScreenManager:
         id: screen_manager
@@ -636,6 +824,8 @@ KV = """
             name: "user"
         HistoryScreen:
             name: "history"
+        RecommendationScreen:
+            name: "recommend"
 """
 
 
@@ -675,6 +865,27 @@ class WorkoutCard(BoxLayout):
     exercises_display = StringProperty()
 
 
+class RecommendationScreen(Screen):
+    pass
+
+
+class PlanItem(BoxLayout):
+    name = StringProperty()
+    display = StringProperty()
+    index = StringProperty()
+
+
+class RecommendationCard(BoxLayout):
+    name = StringProperty()
+    description = StringProperty()
+    muscle_group = StringProperty()
+    equipment = StringProperty()
+    suitability = StringProperty()
+    estimated_minutes = StringProperty()
+    score_display = StringProperty()
+    recommendation = StringProperty()
+
+
 class RootWidget(BoxLayout):
     goal_options = ListProperty()
     goal_choice_options = ListProperty()
@@ -708,6 +919,13 @@ class RootWidget(BoxLayout):
     stats_total_workouts = StringProperty("0")
     stats_total_minutes = StringProperty("0")
     stats_top_exercise = StringProperty("—")
+    rec_status_text = StringProperty("")
+    rec_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    rec_goal_spinner_text = StringProperty("")
+    rec_max_minutes_text = StringProperty("30")
+    rec_recommendations = ListProperty()
+    rec_plan = ListProperty()
+    rec_total_minutes = StringProperty("0")
 
     def __init__(self, **kwargs):
         app = App.get_running_app()
@@ -740,6 +958,8 @@ class RootWidget(BoxLayout):
             self.ids.screen_manager.current = "user"
         except Exception:
             pass
+        if self.goal_choice_options and not self.rec_goal_spinner_text:
+            self.rec_goal_spinner_text = self.goal_choice_options[0]
 
     def _load_records(self) -> list[dict[str, Any]]:
         with exercise_database.get_connection() as conn:
@@ -776,6 +996,10 @@ class RootWidget(BoxLayout):
                     "goal": goal,
                     "goal_label": self._pretty_goal(goal),
                     "suitability_display": f"{rating}/10",
+                    "rating": rating,
+                    "sets": sets,
+                    "reps": reps,
+                    "time_seconds": time_seconds,
                     "recommendation": recommendation,
                 }
             )
@@ -827,6 +1051,9 @@ class RootWidget(BoxLayout):
 
     def _history_screen(self) -> HistoryScreen:
         return self.ids.screen_manager.get_screen("history")
+
+    def _recommend_screen(self) -> RecommendationScreen:
+        return self.ids.screen_manager.get_screen("recommend")
 
     def _prefill_workout_date(self) -> None:
         """Populate the workout date field with today's date if available."""
@@ -1094,6 +1321,237 @@ class RootWidget(BoxLayout):
         else:
             self.stats_top_exercise = "—"
 
+    # --- Recommendation system ---
+    def _set_rec_status(self, message: str, *, error: bool = False) -> None:
+        self.rec_status_text = message
+        self.rec_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def _estimate_minutes(self, record: dict[str, Any]) -> int:
+        """
+        Estimate training time for an exercise.
+
+        Scoring logic (documented for transparency):
+        - If recommended_time_seconds is available, convert to minutes (ceil).
+        - Else, assume each rep ~4 seconds; time = sets * reps * 4 sec, then convert to minutes (ceil).
+        - Fallback to 5 minutes if no volume info exists.
+        """
+        try:
+            time_seconds = record.get("time_seconds")
+            sets = record.get("sets")
+            reps = record.get("reps")
+            if time_seconds:
+                return max(1, (time_seconds + 59) // 60)
+            if sets and reps:
+                seconds = sets * reps * 4
+                return max(1, (seconds + 59) // 60)
+            if sets:
+                seconds = sets * 30
+                return max(1, (seconds + 59) // 60)
+        except Exception:
+            pass
+        return 5
+
+    def _recency_days_map(self) -> dict[str, int]:
+        """Return a mapping of exercise name to days since last performed for current user."""
+        if not self.current_user_id:
+            return {}
+        rows = exercise_database.fetch_recent_exercise_usage(self.current_user_id, limit=200)
+        recency: dict[str, int] = {}
+        today = date.today()
+        for name, performed_at in rows:
+            if name in recency:
+                continue
+            try:
+                performed_date = date.fromisoformat(performed_at)
+                recency[name] = (today - performed_date).days
+            except Exception:
+                continue
+        return recency
+
+    def _score_recommendation(self, record: dict[str, Any], recency_days: Optional[int]) -> float:
+        """
+        Recommendation score formula (documented per requirement):
+        score = suitability_rating
+                + recency_bonus
+        where:
+            recency_bonus = +2.0 if never done
+                           +1.0 if >14 days ago
+                           +0.5 if between 7-14 days
+                           -1.0 if done within last 3 days
+                           0 otherwise
+        """
+        base = float(record.get("rating", 0))
+        if recency_days is None:
+            recency_bonus = 2.0
+        elif recency_days > 14:
+            recency_bonus = 1.0
+        elif recency_days >= 7:
+            recency_bonus = 0.5
+        elif recency_days <= 3:
+            recency_bonus = -1.0
+        else:
+            recency_bonus = 0.0
+        return round(base + recency_bonus, 2)
+
+    def handle_generate_recommendations(self) -> None:
+        if not self.rec_goal_spinner_text:
+            self._set_rec_status("Choose a goal.", error=True)
+            return
+        try:
+            max_minutes = int(self._recommend_screen().ids.rec_max_time.text.strip() or "0")
+            if max_minutes <= 0:
+                raise ValueError
+        except ValueError:
+            self._set_rec_status("Enter a positive max time (minutes).", error=True)
+            return
+
+        self.rec_max_minutes_text = str(max_minutes)
+        goal_code = self._goal_label_map.get(self.rec_goal_spinner_text)
+        if not goal_code:
+            self._set_rec_status("Unknown goal selection.", error=True)
+            return
+
+        recency_map = self._recency_days_map()
+        recommendations = []
+        for record in self.records:
+            if record["goal"] != goal_code:
+                continue
+            est_minutes = self._estimate_minutes(record)
+            recency_days = recency_map.get(record["name"])
+            score = self._score_recommendation(
+                {"rating": float(record.get("rating", 0))}, recency_days
+            )
+            recommendations.append(
+                {
+                    "name": record["name"],
+                    "description": record["description"],
+                    "muscle_group": record["muscle_group"],
+                    "equipment": record["equipment"],
+                    "suitability": record["suitability_display"],
+                    "recommendation": record["recommendation"],
+                    "sets": record.get("sets"),
+                    "reps": record.get("reps"),
+                    "time_seconds": record.get("time_seconds"),
+                    "estimated_minutes": str(est_minutes),
+                    "score": score,
+                    "score_display": str(score),
+                }
+            )
+
+        recommendations.sort(key=lambda r: (-r["score"], r["name"]))
+        self.rec_recommendations = recommendations
+        self._recommend_screen().ids.rec_list.data = recommendations
+        self._set_rec_status(f"{len(recommendations)} exercises recommended.")
+        # Reset plan if goal changes
+        self._reset_plan(silent=True)
+
+    def _find_recommendation(self, name: str) -> Optional[dict[str, Any]]:
+        return next((rec for rec in self.rec_recommendations if rec["name"] == name), None)
+
+    def show_recommendation_details(self, name: str) -> None:
+        rec = self._find_recommendation(name)
+        if not rec:
+            return
+        detail_parts = [rec["recommendation"]]
+        if rec.get("sets"):
+            detail_parts.append(f'Sets: {rec["sets"]}')
+        if rec.get("reps"):
+            detail_parts.append(f'Reps: {rec["reps"]}')
+        if rec.get("time_seconds"):
+            detail_parts.append(f'Time: {rec["time_seconds"]}s')
+        detail = " | ".join(detail_parts)
+        self._set_rec_status(f"{name}: {detail}")
+
+    def add_recommendation_to_plan(self, name: str) -> None:
+        rec = self._find_recommendation(name)
+        if not rec:
+            return
+        if any(item["name"] == name for item in self.rec_plan):
+            self._set_rec_status(f"{name} is already in the plan.", error=True)
+            return
+        plan_item = {
+            "name": rec["name"],
+            "estimated_minutes": rec["estimated_minutes"],
+            "display": f'{rec["name"]} ({rec["estimated_minutes"]} min)',
+        }
+        self.rec_plan.append(plan_item)
+        self._refresh_recommendation_view()
+        self._set_rec_status(f"Added {name} to plan.")
+
+    def _refresh_recommendation_view(self) -> None:
+        rv = self._recommend_screen().ids.rec_plan_list
+        rv.data = [
+            {
+                "name": item["name"],
+                "display": f'{item["name"]} ({item["estimated_minutes"]} min)',
+                "index": str(idx),
+            }
+            for idx, item in enumerate(self.rec_plan)
+        ]
+        total_minutes = sum(int(item["estimated_minutes"]) for item in self.rec_plan)
+        self.rec_total_minutes = str(total_minutes)
+        self._validate_plan_time()
+        rv.refresh_from_data()
+
+    def move_plan_item(self, name: str, direction: int) -> None:
+        for idx, item in enumerate(self.rec_plan):
+            if item["name"] == name:
+                new_idx = max(0, min(len(self.rec_plan) - 1, idx + direction))
+                if new_idx != idx:
+                    self.rec_plan.insert(new_idx, self.rec_plan.pop(idx))
+                    self._set_rec_status(f"Moved {name}.")
+                    self._refresh_recommendation_view()
+                return
+
+    def remove_plan_item(self, name: str) -> None:
+        self.rec_plan = [item for item in self.rec_plan if item["name"] != name]
+        self._set_rec_status(f"Removed {name} from plan.")
+        self._refresh_recommendation_view()
+
+    def _reset_plan(self, *, silent: bool = False) -> None:
+        self.rec_plan = []
+        self.rec_total_minutes = "0"
+        rv = self._recommend_screen().ids.rec_plan_list
+        rv.data = []
+        rv.refresh_from_data()
+        if not silent:
+            self._set_rec_status("Plan cleared.")
+
+    def clear_recommendation_plan(self) -> None:
+        self._reset_plan(silent=False)
+
+    def _validate_plan_time(self) -> None:
+        try:
+            limit = int(self.rec_max_minutes_text or "0")
+        except ValueError:
+            limit = 0
+        try:
+            total = int(self.rec_total_minutes or "0")
+        except ValueError:
+            total = 0
+        if limit and total > int(limit * 1.1):
+            self._set_rec_status(
+                f"Plan time {total} min exceeds limit {limit} min (10% buffer). Remove or reorder.",
+                error=True,
+            )
+        elif not self.rec_status_text or "exceeds limit" in self.rec_status_text.lower():
+            self._set_rec_status("Plan ready.")
+
+    def handle_start_training(self) -> None:
+        if not self.rec_plan:
+            self._set_rec_status("Add at least one exercise to the plan.", error=True)
+            return
+        self._validate_plan_time()
+        try:
+            limit = int(self.rec_max_minutes_text or "0")
+        except ValueError:
+            limit = 0
+        total = int(self.rec_total_minutes or "0")
+        if limit and total > int(limit * 1.1):
+            return
+        # Placeholder for upcoming live-mode implementation.
+        self._set_rec_status("Live mode not implemented yet. Plan ready to start.", error=False)
+
     def _parse_optional_int(self, value: str) -> Optional[int]:
         value = value.strip()
         if not value:
@@ -1210,6 +1668,19 @@ class RootWidget(BoxLayout):
         self.ids.screen_manager.current = "history"
         self._prefill_workout_date()
         self._load_history()
+
+    def go_recommend(self) -> None:
+        self.ids.screen_manager.current = "recommend"
+        if not self.rec_goal_spinner_text and self.goal_choice_options:
+            self.rec_goal_spinner_text = self.goal_choice_options[0]
+        try:
+            rec_screen = self._recommend_screen()
+            rec_screen.ids.rec_goal_spinner.text = self.rec_goal_spinner_text or ""
+            rec_screen.ids.rec_max_time.text = self.rec_max_minutes_text
+            rec_screen.ids.rec_list.data = self.rec_recommendations
+        except Exception:
+            pass
+        self._refresh_recommendation_view()
 
 
 class ExerciseApp(App):
