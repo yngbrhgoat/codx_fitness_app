@@ -184,7 +184,7 @@ KV = """
             bar_width: dp(6)
             scroll_type: ['bars', 'content']
             RecycleBoxLayout:
-                default_size: None, dp(170)
+                default_size: None, None
                 default_size_hint: 1, None
                 size_hint_y: None
                 height: self.minimum_height
@@ -344,55 +344,82 @@ KV = """
             Rectangle:
                 pos: self.pos
                 size: self.size
-        Label:
-            text: "User registration & selection"
-            font_size: "18sp"
-            bold: True
-            color: 0.12, 0.14, 0.22, 1
-            size_hint_y: None
-            height: dp(26)
-        BoxLayout:
-            size_hint_y: None
-            height: dp(44)
-            spacing: dp(8)
-            TextInput:
-                id: username_input
-                hint_text: "New username"
-                multiline: False
-            Button:
-                text: "Register"
-                size_hint_x: None
-                width: dp(120)
-                on_release: app.root.handle_register_user()
-        Label:
-            text: app.root.user_status_text
-            color: app.root.user_status_color
-            size_hint_y: None
-            height: dp(20)
-        Label:
-            text: "Select user"
-            color: 0.18, 0.18, 0.22, 1
-            size_hint_y: None
-            height: dp(20)
-        BoxLayout:
-            size_hint_y: None
-            height: dp(44)
-            spacing: dp(8)
-            Spinner:
-                id: user_spinner
-                text: app.root.user_spinner_text
-                values: app.root.user_options
-                on_text: app.root.on_user_selected(self.text)
-            Button:
-                text: "Open history"
-                size_hint_x: None
-                width: dp(140)
-                on_release: app.root.go_history()
-        Label:
-            text: "Current user: {}".format(app.root.current_user_display)
-            color: 0.2, 0.2, 0.3, 1
-            size_hint_y: None
-            height: dp(22)
+        AnchorLayout:
+            anchor_y: "center"
+            size_hint_y: 0.55
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(10)
+                size_hint_y: None
+                height: self.minimum_height
+                Label:
+                    text: "Select user"
+                    font_size: "18sp"
+                    bold: True
+                    color: 0.12, 0.14, 0.22, 1
+                    size_hint_y: None
+                    height: dp(26)
+                Label:
+                    text: "Choose an existing user to continue."
+                    color: 0.2, 0.2, 0.3, 1
+                    size_hint_y: None
+                    height: dp(20)
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(44)
+                    spacing: dp(8)
+                    Spinner:
+                        id: user_spinner
+                        text: app.root.user_spinner_text
+                        values: app.root.user_options
+                        on_text: app.root.on_user_selected(self.text)
+                    Button:
+                        text: "Open history"
+                        size_hint_x: None
+                        width: dp(140)
+                        on_release: app.root.go_history()
+                Label:
+                    text: "Current user: {}".format(app.root.current_user_display)
+                    color: 0.2, 0.2, 0.3, 1
+                    size_hint_y: None
+                    height: dp(22)
+                Label:
+                    text: ""
+                    size_hint_y: None
+                    height: dp(4)
+        AnchorLayout:
+            anchor_y: "bottom"
+            size_hint_y: 0.45
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+                Label:
+                    text: "Create a new user"
+                    font_size: "17sp"
+                    bold: True
+                    color: 0.12, 0.14, 0.22, 1
+                    size_hint_y: None
+                    height: dp(24)
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(44)
+                    spacing: dp(8)
+                    TextInput:
+                        id: username_input
+                        hint_text: "New username"
+                        multiline: False
+                    Button:
+                        text: "Register"
+                        size_hint_x: None
+                        width: dp(120)
+                        on_release: app.root.handle_register_user()
+                Label:
+                    text: app.root.user_status_text
+                    color: app.root.user_status_color
+                    size_hint_y: None
+                    height: dp(20)
 
 <HistoryScreen>:
     ScrollView:
@@ -677,6 +704,11 @@ class RootWidget(BoxLayout):
         self.apply_filters()
         self._load_users()
         self._prefill_workout_date()
+        # Start on the user screen so a user is chosen or created immediately.
+        try:
+            self.ids.screen_manager.current = "user"
+        except Exception:
+            pass
 
     def _load_records(self) -> list[dict[str, Any]]:
         with exercise_database.get_connection() as conn:
@@ -694,6 +726,8 @@ class RootWidget(BoxLayout):
             reps,
             time_seconds,
         ) in rows:
+            if not name or not description:
+                continue
             recommendation_parts = []
             if sets is not None and reps is not None:
                 recommendation_parts.append(f"{sets} sets x {reps} reps")
@@ -789,8 +823,10 @@ class RootWidget(BoxLayout):
         self.apply_filters()
 
     def apply_filters(self) -> None:
-        filtered = []
+        filtered: list[dict[str, str]] = []
         for record in self.records:
+            if not record.get("name") or not record.get("description"):
+                continue
             if self.filter_goal != "All" and record["goal"] != self.filter_goal:
                 continue
             if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
@@ -808,7 +844,12 @@ class RootWidget(BoxLayout):
                     "recommendation": record["recommendation"],
                 }
             )
-        self._browse_screen().ids.exercise_list.data = filtered
+        exercise_list = self._browse_screen().ids.exercise_list
+        # Clear first to avoid stale/blank items from previous data set.
+        exercise_list.data = []
+        exercise_list.refresh_from_data()
+        exercise_list.data = filtered
+        exercise_list.refresh_from_data()
 
     def _load_users(self) -> None:
         with exercise_database.get_connection() as conn:

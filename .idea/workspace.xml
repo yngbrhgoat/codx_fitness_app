@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Nutzer-Konten (Punkt 2 in Readme) hinzugefügt.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -122,7 +123,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765388280889</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!">
+      <option name="closed" value="true" />
+      <created>1765550574277</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1765550574278</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Nutzer-Konten (Punkt 2 in Readme) hinzugefügt.">
+      <option name="closed" value="true" />
+      <created>1765551703822</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1765551703822</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -142,7 +159,8 @@
     <MESSAGE value="Wo ist der Fehler?" />
     <MESSAGE value="Hinzufügen eines Bildschirms zum Durchsuchen aller Übungen mit Filterung bereitgestellt nach jeweils: Zieleignung, Muskelgruppe, Benötigte Ausrüstung" />
     <MESSAGE value="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!" />
-    <option name="LAST_COMMIT_MESSAGE" value="Hinzufügen einer Eingabe-Maske für den Nutzer, um Übungen hinzufügen zu können. &#10;Achtung: eventuell wird bodyweight auch automatisch, ohne dass der Nutzer es eingibt, im Formular eingefügt!" />
+    <MESSAGE value="Nutzer-Konten (Punkt 2 in Readme) hinzugefügt." />
+    <option name="LAST_COMMIT_MESSAGE" value="Nutzer-Konten (Punkt 2 in Readme) hinzugefügt." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
