@@ -53,16 +53,14 @@ KV = """
         text_size: self.width, None
         size_hint_y: None
         height: self.texture_size[1]
-    Label:
-        text: "Goal suitability: {} ({})".format(root.goal_label, root.suitability_display)
-        color: 0.2, 0.2, 0.3, 1
+    GridLayout:
+        cols: 3
+        spacing: dp(6)
         size_hint_y: None
-        height: self.texture_size[1]
-        text_size: self.width, None
-    BoxLayout:
-        spacing: dp(10)
-        size_hint_y: None
-        height: dp(22)
+        row_default_height: dp(22)
+        Label:
+            text: "Suitability: {}".format(root.suitability_display)
+            color: 0.2, 0.2, 0.3, 1
         Label:
             text: "Muscle: {}".format(root.muscle_group)
             color: 0.15, 0.15, 0.2, 1
@@ -116,7 +114,7 @@ KV = """
     height: self.minimum_height
     canvas.before:
         Color:
-            rgba: 0.96, 0.97, 1, 1
+            rgba: 0.9, 0.95, 1, 1
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -211,16 +209,60 @@ KV = """
             color: 0.2, 0.2, 0.3, 1
             size_hint_y: None
             height: dp(22)
-        BoxLayout:
-            size_hint_y: None
-            height: dp(60)
-            spacing: dp(12)
-            Button:
-                text: "Browse exercises"
-                on_release: app.root.go_browse()
-            Button:
-                text: "Add a new exercise"
-                on_release: app.root.go_add()
+        AnchorLayout:
+            anchor_y: "center"
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(12)
+                size_hint_y: None
+                height: self.minimum_height
+                GridLayout:
+                    cols: 3
+                    spacing: dp(12)
+                    row_default_height: dp(70)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    Button:
+                        text: "Home"
+                        font_size: "22sp"
+                        background_normal: ""
+                        background_color: 0.9, 0.93, 1, 1
+                        on_release: app.root.go_home()
+                    Button:
+                        text: "Browse"
+                        font_size: "22sp"
+                        background_normal: ""
+                        background_color: 0.9, 0.93, 1, 1
+                        on_release: app.root.go_browse()
+                    Button:
+                        text: "Add"
+                        font_size: "22sp"
+                        background_normal: ""
+                        background_color: 0.9, 0.93, 1, 1
+                        on_release: app.root.go_add()
+                    Button:
+                        text: "Users"
+                        font_size: "22sp"
+                        background_normal: ""
+                        background_color: 0.9, 0.93, 1, 1
+                        on_release: app.root.go_users()
+                    Button:
+                        text: "History"
+                        font_size: "22sp"
+                        background_normal: ""
+                        background_color: 0.9, 0.93, 1, 1
+                        on_release: app.root.go_history()
+                    Button:
+                        text: "Recommend"
+                        font_size: "22sp"
+                        background_normal: ""
+                        background_color: 0.9, 0.93, 1, 1
+                        on_release: app.root.go_recommend()
+                Label:
+                    text: "Live Mode (coming soon)"
+                    font_size: "18sp"
+                    bold: True
+                    color: 0.16, 0.16, 0.22, 1
 
 <BrowseScreen>:
     BoxLayout:
@@ -666,7 +708,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 0.98, 0.98, 1, 1
+                rgba: 0.96, 0.99, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -718,7 +760,8 @@ KV = """
             viewclass: "RecommendationCard"
             bar_width: dp(6)
             scroll_type: ['bars', 'content']
-            size_hint_y: 0.45
+            size_hint_y: None
+            height: dp(320)
             RecycleBoxLayout:
                 default_size: None, None
                 default_size_hint: 1, None
@@ -1118,17 +1161,11 @@ class RootWidget(BoxLayout):
         if self.current_user_id and not any(u["id"] == self.current_user_id for u in self._users):
             self.current_user_id = None
 
-        if not self.current_user_id and self._users:
-            selected = self._users[0]
-            self.current_user_id = selected["id"]
-            self.current_user_display = selected["username"]
-            self.user_spinner_text = selected["username"]
-        elif self.current_user_id:
+        if self.current_user_id:
             current = next((u for u in self._users if u["id"] == self.current_user_id), None)
             if current:
                 self.current_user_display = current["username"]
                 self.user_spinner_text = current["username"]
-
         if not self.current_user_id:
             self.current_user_display = "No user selected"
             self.user_spinner_text = "Select user"
@@ -1138,6 +1175,16 @@ class RootWidget(BoxLayout):
     def _set_user_status(self, message: str, *, error: bool = False) -> None:
         self.user_status_text = message
         self.user_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def _require_user(self) -> bool:
+        if not self.current_user_id:
+            self._set_user_status("Select or create a user to continue.", error=True)
+            try:
+                self.ids.screen_manager.current = "user"
+            except Exception:
+                pass
+            return False
+        return True
 
     def handle_register_user(self) -> None:
         ids = self._user_screen().ids
@@ -1164,6 +1211,7 @@ class RootWidget(BoxLayout):
         self.user_spinner_text = username
         self._set_user_status(f"User '{username}' registered.")
         self._load_users()
+        self.go_home()
 
     def on_user_selected(self, username: str) -> None:
         selected = next((u for u in self._users if u["username"] == username), None)
@@ -1174,6 +1222,7 @@ class RootWidget(BoxLayout):
         self.user_spinner_text = selected["username"]
         self._set_user_status(f"User '{username}' selected.")
         self._load_history()
+        self.go_home()
 
     def _split_exercises(self, raw: str) -> list[str]:
         normalized = raw.replace("\n", ",")
@@ -1394,6 +1443,8 @@ class RootWidget(BoxLayout):
         return round(base + recency_bonus, 2)
 
     def handle_generate_recommendations(self) -> None:
+        if not self._require_user():
+            return
         if not self.rec_goal_spinner_text:
             self._set_rec_status("Choose a goal.", error=True)
             return
@@ -1452,15 +1503,28 @@ class RootWidget(BoxLayout):
         rec = self._find_recommendation(name)
         if not rec:
             return
-        detail_parts = [rec["recommendation"]]
-        if rec.get("sets"):
-            detail_parts.append(f'Sets: {rec["sets"]}')
-        if rec.get("reps"):
-            detail_parts.append(f'Reps: {rec["reps"]}')
-        if rec.get("time_seconds"):
-            detail_parts.append(f'Time: {rec["time_seconds"]}s')
-        detail = " | ".join(detail_parts)
-        self._set_rec_status(f"{name}: {detail}")
+        detail = (
+            f"{name}\n"
+            f"Goal: {self.rec_goal_spinner_text}\n"
+            f"Muscle: {rec.get('muscle_group', '')}\n"
+            f"Equipment: {rec.get('equipment', '')}\n"
+            f"Suitability: {rec.get('suitability', '')}\n"
+            f"Estimated time: {rec.get('estimated_minutes', '')} min\n"
+            f"Recommendation: {rec.get('recommendation', '')}"
+        )
+        sets = rec.get("sets")
+        reps = rec.get("reps")
+        time_seconds = rec.get("time_seconds")
+        extras = []
+        if sets:
+            extras.append(f"Sets: {sets}")
+        if reps:
+            extras.append(f"Reps: {reps}")
+        if time_seconds:
+            extras.append(f"Time: {time_seconds}s")
+        if extras:
+            detail += "\n" + " | ".join(extras)
+        self._set_rec_status(detail)
 
     def add_recommendation_to_plan(self, name: str) -> None:
         rec = self._find_recommendation(name)
@@ -1653,23 +1717,33 @@ class RootWidget(BoxLayout):
         self._reset_form()
 
     def go_home(self) -> None:
+        if not self._require_user():
+            return
         self.ids.screen_manager.current = "home"
 
     def go_browse(self) -> None:
+        if not self._require_user():
+            return
         self.ids.screen_manager.current = "browse"
 
     def go_add(self) -> None:
+        if not self._require_user():
+            return
         self.ids.screen_manager.current = "add"
 
     def go_users(self) -> None:
         self.ids.screen_manager.current = "user"
 
     def go_history(self) -> None:
+        if not self._require_user():
+            return
         self.ids.screen_manager.current = "history"
         self._prefill_workout_date()
         self._load_history()
 
     def go_recommend(self) -> None:
+        if not self._require_user():
+            return
         self.ids.screen_manager.current = "recommend"
         if not self.rec_goal_spinner_text and self.goal_choice_options:
             self.rec_goal_spinner_text = self.goal_choice_options[0]
