@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Implementieren einer Statistikfunktion: Sie zeigt folgendes an:&#10;Gesamtzahl der absolvierten Trainingseinheiten, Gesamttrainingszeit, und die am häufigsten durchgeführte Übung">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Allgemeine Verbesserungen">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exercise_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/exercise_database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -156,7 +155,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765552906235</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Hinzufügen des Trainings-Empfehlungssystems (Punkt 3).">
+      <option name="closed" value="true" />
+      <created>1765573699166</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1765573699166</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Allgemeine Verbesserungen">
+      <option name="closed" value="true" />
+      <created>1765576379195</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1765576379195</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -179,7 +194,9 @@
     <MESSAGE value="Nutzer-Konten (Punkt 2 in Readme) hinzugefügt." />
     <MESSAGE value="Fixen von &quot;empty-space&quot; im Browsen. Verbesserung der UI für die Nutzeranmeldung." />
     <MESSAGE value="Implementieren einer Statistikfunktion: Sie zeigt folgendes an:&#10;Gesamtzahl der absolvierten Trainingseinheiten, Gesamttrainingszeit, und die am häufigsten durchgeführte Übung" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implementieren einer Statistikfunktion: Sie zeigt folgendes an:&#10;Gesamtzahl der absolvierten Trainingseinheiten, Gesamttrainingszeit, und die am häufigsten durchgeführte Übung" />
+    <MESSAGE value="Hinzufügen des Trainings-Empfehlungssystems (Punkt 3)." />
+    <MESSAGE value="Allgemeine Verbesserungen" />
+    <option name="LAST_COMMIT_MESSAGE" value="Allgemeine Verbesserungen" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

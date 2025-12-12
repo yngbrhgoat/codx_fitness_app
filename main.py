@@ -1585,6 +1585,34 @@ class RootWidget(BoxLayout):
         self.rec_plan = [item for item in self.rec_plan if item["name"] != name]
         self._set_rec_status(f"Removed {name} from plan.")
         self._refresh_recommendation_view()
+        # Return the exercise to recommendations list in sorted order if it fits the current goal.
+        if self.rec_goal_spinner_text:
+            goal_code = self._goal_label_map.get(self.rec_goal_spinner_text)
+            match = next((r for r in self.records if r["name"] == name and r["goal"] == goal_code), None)
+            if match:
+                est_minutes = self._estimate_minutes(match)
+                recency_map = self._recency_days_map()
+                recency_days = recency_map.get(match["name"])
+                score = self._score_recommendation({"rating": float(match.get("rating", 0))}, recency_days)
+                self.rec_recommendations.append(
+                    {
+                        "name": match["name"],
+                        "description": match["description"],
+                        "muscle_group": match["muscle_group"],
+                        "equipment": match["equipment"],
+                        "suitability": match["suitability_display"],
+                        "recommendation": match["recommendation"],
+                        "sets": match.get("sets"),
+                        "reps": match.get("reps"),
+                        "time_seconds": match.get("time_seconds"),
+                        "estimated_minutes": str(est_minutes),
+                        "score": score,
+                        "score_display": str(score),
+                        "show_details": "0",
+                    }
+                )
+                self.rec_recommendations.sort(key=lambda r: (-r["score"], r["name"]))
+                self._recommend_screen().ids.rec_list.data = self.rec_recommendations
 
     def _reset_plan(self, *, silent: bool = False) -> None:
         self.rec_plan = []
