@@ -1343,11 +1343,27 @@ class RootWidget(BoxLayout):
     def _pretty_goal(self, goal: str) -> str:
         return goal.replace("_", " ").title()
 
+    def _preferred_goal_label(self) -> str:
+        """
+        Pick a default goal label for forms:
+        - Current recommendation goal if chosen
+        - Else "Muscle Building" (most common)
+        - Else first available goal.
+        """
+        if self.rec_goal_spinner_text:
+            return self.rec_goal_spinner_text
+        muscle_label = self._pretty_goal("muscle_building")
+        if muscle_label in self.goal_choice_options:
+            return muscle_label
+        if self.goal_choice_options:
+            return self.goal_choice_options[0]
+        return ""
+
     def _bootstrap_data(self, *_: Any) -> None:
         self.records = self._load_records()
         self.goal_choice_options = list(self._goal_label_map.keys())
         if not self.add_goal_spinner_text and self.goal_choice_options:
-            self.add_goal_spinner_text = self.goal_choice_options[0]
+            self.add_goal_spinner_text = self._preferred_goal_label()
         self._update_filter_options()
         self.apply_filters()
         self._load_users()
@@ -1408,6 +1424,8 @@ class RootWidget(BoxLayout):
     def _update_filter_options(self) -> None:
         muscle_choices = sorted({r["muscle_group"] for r in self.records})
         equipment_choices = sorted({r["equipment"] for r in self.records})
+        if "Dumbbells" not in equipment_choices:
+            equipment_choices.append("Dumbbells")
         self.muscle_choice_options = muscle_choices
         self.muscle_choice_display = ", ".join(muscle_choices) if muscle_choices else "No known groups yet."
         if not self.add_muscle_spinner_text and muscle_choices:
@@ -1439,6 +1457,8 @@ class RootWidget(BoxLayout):
             self.filter_equipment = "All"
         self.muscle_options = muscle_options
         self.equipment_options = equipment_options
+        if self.goal_choice_options and self.add_goal_spinner_text not in self.goal_choice_options:
+            self.add_goal_spinner_text = self._preferred_goal_label()
 
     def _browse_screen(self) -> BrowseScreen:
         return self.ids.screen_manager.get_screen("browse")
@@ -2168,6 +2188,8 @@ class RootWidget(BoxLayout):
     def go_add(self) -> None:
         if not self._require_user():
             return
+        if self.goal_choice_options:
+            self.add_goal_spinner_text = self._preferred_goal_label()
         self.ids.screen_manager.current = "add"
 
     def go_users(self) -> None:
