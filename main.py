@@ -100,8 +100,24 @@ KV = """
         size_hint_y: None
         height: self.texture_size[1]
     Label:
+        text: "Goal: {}".format(root.goal_display)
+        color: 0.16, 0.18, 0.24, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: "Completed sets: {}".format(root.sets_display)
+        color: 0.16, 0.18, 0.24, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
         text: root.exercises_display
         color: 0.2, 0.2, 0.28, 1
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: root.attempts_display
+        color: 0.18, 0.18, 0.24, 1
         text_size: self.width, None
         size_hint_y: None
         height: self.texture_size[1]
@@ -984,6 +1000,95 @@ KV = """
             Button:
                 text: "Start training"
                 on_release: app.root.handle_start_training()
+
+<SummaryScreen>:
+    ScrollView:
+        do_scroll_x: False
+        BoxLayout:
+            orientation: "vertical"
+            padding: dp(14)
+            spacing: dp(10)
+            size_hint_y: None
+            height: self.minimum_height
+            canvas.before:
+                Color:
+                    rgba: 0.97, 0.98, 1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "Workout summary"
+                font_size: "20sp"
+                bold: True
+                color: 0.1, 0.12, 0.2, 1
+                size_hint_y: None
+                height: dp(28)
+            GridLayout:
+                cols: 2
+                spacing: dp(8)
+                row_default_height: dp(26)
+                size_hint_y: None
+                height: self.minimum_height
+                Label:
+                    text: "Finished at"
+                    color: 0.18, 0.18, 0.22, 1
+                Label:
+                    text: app.root.summary_performed_at_display
+                    color: 0.16, 0.2, 0.3, 1
+                    text_size: self.width, None
+                    halign: "left"
+                Label:
+                    text: "Goal"
+                    color: 0.18, 0.18, 0.22, 1
+                Label:
+                    text: app.root.summary_goal_display
+                    color: 0.16, 0.2, 0.3, 1
+                Label:
+                    text: "Total duration"
+                    color: 0.18, 0.18, 0.22, 1
+                Label:
+                    text: app.root.summary_duration_display
+                    color: 0.16, 0.2, 0.3, 1
+                Label:
+                    text: "Completed sets"
+                    color: 0.18, 0.18, 0.22, 1
+                Label:
+                    text: app.root.summary_sets_display
+                    color: 0.16, 0.2, 0.3, 1
+            Label:
+                text: "Completed exercises: {}".format(app.root.summary_completed_display)
+                color: 0.15, 0.18, 0.26, 1
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+            Label:
+                text: "Skipped exercises: {}".format(app.root.summary_skipped_display)
+                color: 0.2, 0.16, 0.18, 1
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+            Label:
+                text: "Attempted exercises with status:"
+                bold: True
+                color: 0.12, 0.14, 0.22, 1
+                size_hint_y: None
+                height: dp(22)
+            Label:
+                text: app.root.summary_attempts_display
+                color: 0.16, 0.2, 0.3, 1
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+            BoxLayout:
+                size_hint_y: None
+                height: dp(44)
+                spacing: dp(10)
+                Button:
+                    text: "Return to main menu"
+                    on_release: app.root.go_home()
+                Button:
+                    text: "Start a new training session"
+                    on_release: app.root.start_new_session()
 <RootWidget>:
     orientation: "vertical"
     canvas.before:
@@ -1063,6 +1168,8 @@ KV = """
             name: "recommend"
         LiveScreen:
             name: "live"
+        SummaryScreen:
+            name: "summary"
 """
 
 
@@ -1100,6 +1207,9 @@ class WorkoutCard(BoxLayout):
     date_display = StringProperty()
     duration_display = StringProperty()
     exercises_display = StringProperty()
+    goal_display = StringProperty()
+    sets_display = StringProperty()
+    attempts_display = StringProperty()
 
 
 class RecommendationScreen(Screen):
@@ -1107,6 +1217,10 @@ class RecommendationScreen(Screen):
 
 
 class LiveScreen(Screen):
+    pass
+
+
+class SummaryScreen(Screen):
     pass
 
 
@@ -1188,6 +1302,13 @@ class RootWidget(BoxLayout):
     live_hint_text = StringProperty("")
     live_hint_color = ListProperty((0.14, 0.4, 0.2, 1))
     live_upcoming_display = StringProperty("None")
+    summary_duration_display = StringProperty("00:00")
+    summary_sets_display = StringProperty("0")
+    summary_completed_display = StringProperty("None")
+    summary_skipped_display = StringProperty("None")
+    summary_attempts_display = StringProperty("")
+    summary_goal_display = StringProperty("—")
+    summary_performed_at_display = StringProperty("")
 
     def __init__(self, **kwargs):
         app = App.get_running_app()
@@ -1211,6 +1332,10 @@ class RootWidget(BoxLayout):
         self._live_session_started_at: Optional[datetime] = None
         self._live_completed: list[str] = []
         self._live_skipped: list[str] = []
+        self._live_attempt_log: list[dict[str, str]] = []
+        self._live_goal_label: str = ""
+        self._live_total_sets_completed = 0
+        self._live_current_logged = False
         self.live_rest_seconds = 30
         self._live_phase = "idle"
         Clock.schedule_once(self._bootstrap_data, 0)
@@ -1501,11 +1626,31 @@ class RootWidget(BoxLayout):
         data = []
         for entry in history_entries:
             exercises_display = ", ".join(entry.get("exercises", [])) if entry.get("exercises") else "No exercises recorded"
+            attempts = entry.get("exercise_attempts") or []
+            attempts_display = (
+                "Attempts: "
+                + ", ".join(
+                    f"{att.get('name', 'Exercise')} ({att.get('status', 'completed').title()})" for att in attempts
+                )
+                if attempts
+                else "Attempts: none recorded"
+            )
+            goal_display = entry.get("goal") or "—"
+            sets_display = str(entry.get("total_sets_completed") or 0)
+            duration_minutes = entry.get("duration_minutes") or 0
+            duration_seconds = entry.get("duration_seconds")
+            if duration_seconds:
+                duration_display = f"{duration_minutes} min ({duration_seconds}s)"
+            else:
+                duration_display = str(duration_minutes)
             data.append(
                 {
                     "date_display": entry["performed_at"],
-                    "duration_display": str(entry["duration_minutes"]),
+                    "duration_display": duration_display,
                     "exercises_display": exercises_display,
+                    "goal_display": goal_display,
+                    "sets_display": sets_display,
+                    "attempts_display": attempts_display,
                 }
             )
         history_screen.ids.history_list.data = data
@@ -2059,6 +2204,17 @@ class RootWidget(BoxLayout):
         except Exception:
             pass
 
+    def go_summary(self) -> None:
+        try:
+            self.ids.screen_manager.current = "summary"
+        except Exception:
+            pass
+
+    def start_new_session(self) -> None:
+        self.live_active = False
+        self.live_paused = False
+        self.go_recommend()
+
     # --- Live mode helpers ---
     def _format_time(self, seconds: float) -> str:
         total = int(max(0, round(seconds)))
@@ -2090,6 +2246,22 @@ class RootWidget(BoxLayout):
     def _clear_hint(self, expected: str) -> None:
         if self.live_hint_text == expected:
             self.live_hint_text = ""
+
+    def _record_attempt(self, status: str) -> None:
+        """Record the current exercise with a completion status once per exercise."""
+        if self._live_current_logged:
+            return
+        exercise = self._current_live_exercise()
+        if not exercise:
+            return
+        normalized_status = "skipped" if status == "skipped" else "completed"
+        name = exercise.get("name", "Exercise")
+        self._live_attempt_log.append({"name": name, "status": normalized_status})
+        if normalized_status == "skipped":
+            self._live_skipped.append(name)
+        else:
+            self._live_completed.append(name)
+        self._live_current_logged = True
 
     def _update_live_upcoming(self) -> None:
         upcoming = [ex["name"] for ex in self.live_exercises[self._live_current_index + 1 :]]
@@ -2162,6 +2334,10 @@ class RootWidget(BoxLayout):
         self._live_set_target_seconds = self._compute_set_target_seconds(self._current_live_exercise())
         self._live_completed = []
         self._live_skipped = []
+        self._live_attempt_log = []
+        self._live_goal_label = self.rec_goal_spinner_text or ""
+        self._live_total_sets_completed = 0
+        self._live_current_logged = False
         self.live_paused = False
         self.live_active = True
         self._live_session_started_at = datetime.now()
@@ -2236,6 +2412,7 @@ class RootWidget(BoxLayout):
         exercise = self._current_live_exercise()
         if not exercise or not self.live_active:
             return
+        self._live_total_sets_completed += 1
         total_sets = exercise.get("sets") or 1
         if self._live_current_set >= total_sets:
             self._advance_exercise()
@@ -2249,16 +2426,12 @@ class RootWidget(BoxLayout):
         self._update_live_labels()
 
     def _advance_exercise(self, *, skipped: bool = False) -> None:
-        current = self._current_live_exercise()
-        if current:
-            if skipped:
-                self._live_skipped.append(current["name"])
-            else:
-                self._live_completed.append(current["name"])
+        self._record_attempt("skipped" if skipped else "completed")
         if self._live_current_index >= len(self.live_exercises) - 1:
             self.end_live_session(early=skipped)
             return
         self._live_current_index += 1
+        self._live_current_logged = False
         self._live_current_set = 1
         self._live_set_elapsed = 0.0
         self._live_exercise_elapsed = 0.0
@@ -2298,6 +2471,14 @@ class RootWidget(BoxLayout):
     def end_live_session(self, *, early: bool = False) -> None:
         if not self.live_active:
             return
+        if self._current_live_exercise() and not self._live_current_logged:
+            self._record_attempt("skipped" if early else "completed")
+        now = datetime.now()
+        if self._live_session_started_at:
+            duration_seconds = int(max(1, (now - self._live_session_started_at).total_seconds()))
+        else:
+            duration_seconds = 0
+        performed_at = now.isoformat(timespec="seconds")
         self.live_active = False
         self.live_paused = False
         self._live_phase = "idle"
@@ -2314,6 +2495,52 @@ class RootWidget(BoxLayout):
         self.live_set_timer = self._format_time(self._live_set_elapsed)
         self.live_exercise_timer = self._format_time(self._live_exercise_elapsed)
         self.live_upcoming_display = "Session ended"
+        self._prepare_summary(duration_seconds, performed_at)
+        self._log_live_workout(duration_seconds, performed_at)
+        try:
+            self.ids.screen_manager.current = "summary"
+        except Exception:
+            pass
+
+    def _prepare_summary(self, duration_seconds: int, performed_at: str) -> None:
+        self.summary_duration_display = self._format_time(duration_seconds or 0)
+        self.summary_sets_display = str(self._live_total_sets_completed)
+        completed = [att["name"] for att in self._live_attempt_log if att.get("status") == "completed"]
+        skipped = [att["name"] for att in self._live_attempt_log if att.get("status") == "skipped"]
+        self.summary_completed_display = ", ".join(completed) if completed else "None"
+        self.summary_skipped_display = ", ".join(skipped) if skipped else "None"
+        attempts_lines = [
+            f"{att.get('name', 'Exercise')}: {'Completed' if att.get('status') == 'completed' else 'Skipped'}"
+            for att in self._live_attempt_log
+        ]
+        self.summary_attempts_display = "\n".join(attempts_lines) if attempts_lines else "No exercises attempted."
+        self.summary_goal_display = self._live_goal_label or "—"
+        self.summary_performed_at_display = performed_at
+
+    def _log_live_workout(self, duration_seconds: int, performed_at: str) -> None:
+        if not self.current_user_id:
+            return
+        attempts = list(self._live_attempt_log)
+        if not attempts:
+            attempts = [{"name": ex.get("name", "Exercise"), "status": "skipped"} for ex in self.live_exercises]
+        exercise_names = [att.get("name", "Exercise") for att in attempts]
+        duration_minutes = int(max(1, (duration_seconds + 59) // 60)) if duration_seconds else 1
+        try:
+            exercise_database.log_workout(
+                user_id=self.current_user_id,
+                performed_at=performed_at,
+                duration_minutes=duration_minutes,
+                exercises=exercise_names,
+                goal=self._live_goal_label or "",
+                duration_seconds=duration_seconds or duration_minutes * 60,
+                total_sets_completed=self._live_total_sets_completed,
+                exercise_statuses=[(att.get("name", "Exercise"), att.get("status", "completed")) for att in attempts],
+            )
+        except (ValueError, sqlite3.DatabaseError) as exc:
+            self._set_history_status(f"Could not log workout: {exc}", error=True)
+            return
+        self._set_history_status("Workout logged from live session.")
+        self._load_history()
 
 
 class ExerciseApp(App):

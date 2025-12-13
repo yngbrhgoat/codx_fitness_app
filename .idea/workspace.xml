@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Allgemeine Verbesserungen">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Verbesserung der UI">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercise_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/exercise_database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercises.db" beforeDir="false" afterPath="$PROJECT_DIR$/exercises.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -171,7 +173,47 @@
       <option name="project" value="LOCAL" />
       <updated>1765576379195</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Allgemeine Verbesserungen">
+      <option name="closed" value="true" />
+      <created>1765577184677</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1765577184677</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Nach removen aus der Liste für das Training wird diese Übung wieder in den Recommendations sehbar">
+      <option name="closed" value="true" />
+      <created>1765577393526</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1765577393526</updated>
+    </task>
+    <task id="LOCAL-00017" summary="einführen des Live-Modus">
+      <option name="closed" value="true" />
+      <created>1765617449225</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1765617449225</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Verbesserung der UI">
+      <option name="closed" value="true" />
+      <created>1765618089647</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1765618089647</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Verbesserung der UI">
+      <option name="closed" value="true" />
+      <created>1765618269027</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1765618269027</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -196,7 +238,10 @@
     <MESSAGE value="Implementieren einer Statistikfunktion: Sie zeigt folgendes an:&#10;Gesamtzahl der absolvierten Trainingseinheiten, Gesamttrainingszeit, und die am häufigsten durchgeführte Übung" />
     <MESSAGE value="Hinzufügen des Trainings-Empfehlungssystems (Punkt 3)." />
     <MESSAGE value="Allgemeine Verbesserungen" />
-    <option name="LAST_COMMIT_MESSAGE" value="Allgemeine Verbesserungen" />
+    <MESSAGE value="Nach removen aus der Liste für das Training wird diese Übung wieder in den Recommendations sehbar" />
+    <MESSAGE value="einführen des Live-Modus" />
+    <MESSAGE value="Verbesserung der UI" />
+    <option name="LAST_COMMIT_MESSAGE" value="Verbesserung der UI" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

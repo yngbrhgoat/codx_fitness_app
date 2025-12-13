@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Iterable, Optional, Sequence, Tuple
 
 
 DB_PATH = Path(__file__).with_name("exercises.db")
@@ -39,6 +39,9 @@ def create_schema(conn: sqlite3.Connection) -> None:
             user_id INTEGER NOT NULL,
             performed_at TEXT NOT NULL,
             duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
+            duration_seconds INTEGER,
+            goal TEXT,
+            total_sets_completed INTEGER DEFAULT 0 CHECK (total_sets_completed >= 0),
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         );
         """
@@ -49,6 +52,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             workout_id INTEGER NOT NULL,
             exercise_name TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('completed','skipped')),
             FOREIGN KEY (workout_id) REFERENCES workouts (id) ON DELETE CASCADE
         );
         """
@@ -79,6 +83,27 @@ def create_schema(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (exercise_id) REFERENCES exercises (id) ON DELETE CASCADE
         );
         """
+    )
+    conn.commit()
+
+
+def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    """Add a column only when it is absent to support simple migrations."""
+    columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table});")}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {definition};")
+
+
+def migrate_schema(conn: sqlite3.Connection) -> None:
+    """Ensure newer columns exist for enriched workout logging."""
+    _add_column_if_missing(conn, "workouts", "duration_seconds", "duration_seconds INTEGER")
+    _add_column_if_missing(conn, "workouts", "goal", "goal TEXT")
+    _add_column_if_missing(conn, "workouts", "total_sets_completed", "total_sets_completed INTEGER DEFAULT 0")
+    _add_column_if_missing(
+        conn,
+        "workout_exercises",
+        "status",
+        "status TEXT NOT NULL DEFAULT 'completed'",
     )
     conn.commit()
 
@@ -280,6 +305,7 @@ def initialize_database(db_path: Optional[Path] = None) -> Path:
     target_path = db_path or DB_PATH
     with get_connection(target_path) as conn:
         create_schema(conn)
+        migrate_schema(conn)
         seed_sample_data(conn)
     return target_path
 
@@ -372,27 +398,64 @@ def log_workout(
     performed_at: str,
     duration_minutes: int,
     exercises: Sequence[str],
+    goal: Optional[str] = None,
+    duration_seconds: Optional[int] = None,
+    total_sets_completed: Optional[int] = None,
+    exercise_statuses: Optional[Iterable[Tuple[str, str]]] = None,
     db_path: Path = DB_PATH,
 ) -> int:
-    """Persist a completed workout for a user and return the workout id."""
+    """
+    Persist a completed workout for a user and return the workout id.
+
+    When exercise_statuses is provided, it must contain tuples of (name, status)
+    where status is either "completed" or "skipped". If not provided, all
+    exercises are stored as completed.
+    """
     if duration_minutes <= 0:
         raise ValueError("Duration must be positive.")
     cleaned_exercises = [ex.strip() for ex in exercises if ex.strip()]
     if not cleaned_exercises:
         raise ValueError("At least one exercise is required.")
 
+    if exercise_statuses is None:
+        normalized_statuses = [(ex, "completed") for ex in cleaned_exercises]
+    else:
+        normalized_statuses: list[Tuple[str, str]] = []
+        for name, status in exercise_statuses:
+            name = name.strip()
+            status = status.strip().lower()
+            if status not in ("completed", "skipped"):
+                raise ValueError("Exercise status must be 'completed' or 'skipped'.")
+            if name:
+                normalized_statuses.append((name, status))
+        if not normalized_statuses:
+            raise ValueError("Exercise statuses cannot be empty.")
+
+    if duration_seconds is None:
+        duration_seconds = duration_minutes * 60
+    sets_completed = total_sets_completed if total_sets_completed is not None else 0
+    if sets_completed < 0:
+        raise ValueError("Total sets completed cannot be negative.")
+
     with get_connection(db_path) as conn:
         cursor = conn.execute(
             """
-            INSERT INTO workouts (user_id, performed_at, duration_minutes)
-            VALUES (?, ?, ?);
+            INSERT INTO workouts (
+                user_id,
+                performed_at,
+                duration_minutes,
+                goal,
+                duration_seconds,
+                total_sets_completed
+            )
+            VALUES (?, ?, ?, ?, ?, ?);
             """,
-            (user_id, performed_at, duration_minutes),
+            (user_id, performed_at, duration_minutes, goal, duration_seconds, sets_completed),
         )
         workout_id = cursor.lastrowid
         conn.executemany(
-            "INSERT INTO workout_exercises (workout_id, exercise_name) VALUES (?, ?);",
-            [(workout_id, ex) for ex in cleaned_exercises],
+            "INSERT INTO workout_exercises (workout_id, exercise_name, status) VALUES (?, ?, ?);",
+            [(workout_id, name, status) for name, status in normalized_statuses],
         )
         conn.commit()
         return workout_id
@@ -411,7 +474,15 @@ def fetch_workout_history(
     Dates are compared using SQLite's date() to respect YYYY-MM-DD strings.
     """
     query = """
-        SELECT w.id, w.performed_at, w.duration_minutes, we.exercise_name
+        SELECT
+            w.id,
+            w.performed_at,
+            w.duration_minutes,
+            w.goal,
+            w.duration_seconds,
+            w.total_sets_completed,
+            we.exercise_name,
+            we.status
         FROM workouts w
         LEFT JOIN workout_exercises we ON w.id = we.workout_id
         WHERE w.user_id = ?
@@ -429,18 +500,37 @@ def fetch_workout_history(
         rows = conn.execute(query, params).fetchall()
 
     grouped: dict[int, dict[str, object]] = {}
-    for workout_id, performed_at, duration_minutes, exercise_name in rows:
+    for (
+        workout_id,
+        performed_at,
+        duration_minutes,
+        goal,
+        duration_seconds,
+        total_sets_completed,
+        exercise_name,
+        status,
+    ) in rows:
         entry = grouped.setdefault(
             workout_id,
             {
                 "workout_id": workout_id,
                 "performed_at": performed_at,
                 "duration_minutes": duration_minutes,
+                "goal": goal,
+                "duration_seconds": duration_seconds,
+                "total_sets_completed": total_sets_completed,
                 "exercises": [],
+                "exercise_attempts": [],
             },
         )
         if exercise_name:
             entry["exercises"].append(exercise_name)
+            entry["exercise_attempts"].append(
+                {
+                    "name": exercise_name,
+                    "status": (status or "completed").lower(),
+                }
+            )
     return list(grouped.values())
 
 
