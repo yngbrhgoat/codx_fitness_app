@@ -948,12 +948,12 @@ KV = """
             scroll_type: ['bars', 'content']
             size_hint_y: None
             height: dp(320)
-            RecycleBoxLayout:
-                default_size: None, None
-                default_size_hint: 1, None
+            RecycleGridLayout:
+                cols: 2
+                default_size: None, dp(200)
+                default_size_hint: 0.5, None
                 size_hint_y: None
                 height: self.minimum_height
-                orientation: "vertical"
                 spacing: dp(10)
         Label:
             text: "Your training plan (reorder with Up/Down)"
