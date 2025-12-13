@@ -2508,24 +2508,31 @@ class RootWidget(BoxLayout):
         Return a full attempt list, optionally filling unattempted items as skipped when ending early.
         """
         attempts = list(self._live_attempt_log)
-        logged_names = {att.get("name", "Exercise") for att in attempts}
-        skipped_names = set(self._live_skipped)
+        attempt_counts: dict[str, int] = {}
+        for att in attempts:
+            name = att.get("name", "Exercise")
+            attempt_counts[name] = attempt_counts.get(name, 0) + 1
+
+        new_skips: list[dict[str, str]] = []
         if mark_unattempted_skipped:
+            seen_counts: dict[str, int] = {}
             for ex in self.live_exercises:
                 name = ex.get("name", "Exercise")
-                if name not in logged_names:
-                    attempts.append({"name": name, "status": "skipped"})
-                    logged_names.add(name)
-                    if name not in skipped_names:
-                        self._live_skipped.append(name)
-                        skipped_names.add(name)
-        if not attempts:
-            for ex in self.live_exercises:
-                name = ex.get("name", "Exercise")
-                attempts.append({"name": name, "status": "skipped"})
-                if name not in skipped_names:
+                seen_counts[name] = seen_counts.get(name, 0) + 1
+                already_attempted = attempt_counts.get(name, 0)
+                # If this occurrence has no matching attempt, mark it as skipped.
+                if seen_counts[name] > already_attempted:
+                    new_skips.append({"name": name, "status": "skipped"})
                     self._live_skipped.append(name)
-                    skipped_names.add(name)
+                    attempt_counts[name] = attempt_counts.get(name, 0) + 1
+
+        if not attempts and not new_skips:
+            for ex in self.live_exercises:
+                name = ex.get("name", "Exercise")
+                new_skips.append({"name": name, "status": "skipped"})
+                self._live_skipped.append(name)
+
+        attempts.extend(new_skips)
         return attempts
 
     def _prepare_summary(self, duration_seconds: int, performed_at: str, attempts: list[dict[str, str]]) -> None:
