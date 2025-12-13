@@ -379,6 +379,15 @@ KV = """
             color: 0.2, 0.2, 0.3, 1
             size_hint_y: None
             height: dp(22)
+        Label:
+            text: "Live Mode: build a plan under Recommend, then press Start."
+            font_size: "18sp"
+            bold: True
+            color: 0.16, 0.16, 0.22, 1
+            size_hint_y: None
+            height: dp(26)
+            text_size: self.width, None
+            halign: "center"
         AnchorLayout:
             anchor_y: "center"
             BoxLayout:
@@ -432,19 +441,14 @@ KV = """
                         background_color: 0.18, 0.4, 0.85, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_history()
-                Button:
-                    text: "Recommend"
-                    font_size: "26sp"
-                    bold: True
-                    background_normal: ""
-                    background_color: 0.18, 0.4, 0.85, 1
-                    color: 1, 1, 1, 1
-                    on_release: app.root.go_recommend()
-            Label:
-                text: "Live Mode: build a plan under Recommend, then press Start."
-                font_size: "18sp"
-                bold: True
-                color: 0.16, 0.16, 0.22, 1
+                    Button:
+                        text: "Recommend"
+                        font_size: "26sp"
+                        bold: True
+                        background_normal: ""
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
+                        on_release: app.root.go_recommend()
 
 <BrowseScreen>:
     BoxLayout:
