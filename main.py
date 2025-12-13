@@ -2484,45 +2484,68 @@ class RootWidget(BoxLayout):
         self._live_phase = "idle"
         self._live_rest_remaining = 0.0
         self._stop_live_clock()
-        completed = len(self._live_completed)
-        skipped = len(self._live_skipped)
-        status = "Workout finished" if not early else "Workout ended early"
-        summary = f"{status}. Completed {completed}, skipped {skipped}."
-        self.live_state_display = status
-        self._set_hint(summary, color=(0.18, 0.4, 0.2, 1), clear_after=0)
-        self.live_progress_display = summary
         self.live_rest_timer = "—"
         self.live_set_timer = self._format_time(self._live_set_elapsed)
         self.live_exercise_timer = self._format_time(self._live_exercise_elapsed)
         self.live_upcoming_display = "Session ended"
-        self._prepare_summary(duration_seconds, performed_at)
-        self._log_live_workout(duration_seconds, performed_at)
+        attempts = self._collect_attempts(mark_unattempted_skipped=early)
+        completed_count = sum(1 for att in attempts if att.get("status") == "completed")
+        skipped_count = sum(1 for att in attempts if att.get("status") == "skipped")
+        status = "Workout finished" if not early else "Workout ended early"
+        summary = f"{status}. Completed {completed_count}, skipped {skipped_count}."
+        self.live_state_display = status
+        self.live_progress_display = summary
+        self._set_hint(summary, color=(0.18, 0.4, 0.2, 1), clear_after=0)
+        self._prepare_summary(duration_seconds, performed_at, attempts)
+        self._log_live_workout(duration_seconds, performed_at, attempts)
         try:
             self.ids.screen_manager.current = "summary"
         except Exception:
             pass
 
-    def _prepare_summary(self, duration_seconds: int, performed_at: str) -> None:
+    def _collect_attempts(self, *, mark_unattempted_skipped: bool) -> list[dict[str, str]]:
+        """
+        Return a full attempt list, optionally filling unattempted items as skipped when ending early.
+        """
+        attempts = list(self._live_attempt_log)
+        logged_names = {att.get("name", "Exercise") for att in attempts}
+        skipped_names = set(self._live_skipped)
+        if mark_unattempted_skipped:
+            for ex in self.live_exercises:
+                name = ex.get("name", "Exercise")
+                if name not in logged_names:
+                    attempts.append({"name": name, "status": "skipped"})
+                    logged_names.add(name)
+                    if name not in skipped_names:
+                        self._live_skipped.append(name)
+                        skipped_names.add(name)
+        if not attempts:
+            for ex in self.live_exercises:
+                name = ex.get("name", "Exercise")
+                attempts.append({"name": name, "status": "skipped"})
+                if name not in skipped_names:
+                    self._live_skipped.append(name)
+                    skipped_names.add(name)
+        return attempts
+
+    def _prepare_summary(self, duration_seconds: int, performed_at: str, attempts: list[dict[str, str]]) -> None:
         self.summary_duration_display = self._format_time(duration_seconds or 0)
         self.summary_sets_display = str(self._live_total_sets_completed)
-        completed = [att["name"] for att in self._live_attempt_log if att.get("status") == "completed"]
-        skipped = [att["name"] for att in self._live_attempt_log if att.get("status") == "skipped"]
+        completed = [att.get("name", "Exercise") for att in attempts if att.get("status") == "completed"]
+        skipped = [att.get("name", "Exercise") for att in attempts if att.get("status") == "skipped"]
         self.summary_completed_display = ", ".join(completed) if completed else "None"
         self.summary_skipped_display = ", ".join(skipped) if skipped else "None"
         attempts_lines = [
             f"{att.get('name', 'Exercise')}: {'Completed' if att.get('status') == 'completed' else 'Skipped'}"
-            for att in self._live_attempt_log
+            for att in attempts
         ]
         self.summary_attempts_display = "\n".join(attempts_lines) if attempts_lines else "No exercises attempted."
         self.summary_goal_display = self._live_goal_label or "—"
         self.summary_performed_at_display = performed_at
 
-    def _log_live_workout(self, duration_seconds: int, performed_at: str) -> None:
+    def _log_live_workout(self, duration_seconds: int, performed_at: str, attempts: list[dict[str, str]]) -> None:
         if not self.current_user_id:
             return
-        attempts = list(self._live_attempt_log)
-        if not attempts:
-            attempts = [{"name": ex.get("name", "Exercise"), "status": "skipped"} for ex in self.live_exercises]
         exercise_names = [att.get("name", "Exercise") for att in attempts]
         duration_minutes = int(max(1, (duration_seconds + 59) // 60)) if duration_seconds else 1
         try:
