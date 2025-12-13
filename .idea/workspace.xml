@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Hinzufügen von Unit-Tests">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Allgemeine Verbesserungen">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exercises.db" beforeDir="false" afterPath="$PROJECT_DIR$/exercises.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_logic.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_logic.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -244,7 +244,23 @@
       <option name="project" value="LOCAL" />
       <updated>1765630533708</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Allgemeine Verbesserungen">
+      <option name="closed" value="true" />
+      <created>1765632825146</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1765632825146</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Allgemeine Verbesserungen">
+      <option name="closed" value="true" />
+      <created>1765632857961</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1765632857961</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -268,14 +284,14 @@
     <MESSAGE value="Fixen von &quot;empty-space&quot; im Browsen. Verbesserung der UI für die Nutzeranmeldung." />
     <MESSAGE value="Implementieren einer Statistikfunktion: Sie zeigt folgendes an:&#10;Gesamtzahl der absolvierten Trainingseinheiten, Gesamttrainingszeit, und die am häufigsten durchgeführte Übung" />
     <MESSAGE value="Hinzufügen des Trainings-Empfehlungssystems (Punkt 3)." />
-    <MESSAGE value="Allgemeine Verbesserungen" />
     <MESSAGE value="Nach removen aus der Liste für das Training wird diese Übung wieder in den Recommendations sehbar" />
     <MESSAGE value="einführen des Live-Modus" />
     <MESSAGE value="Verbesserung der UI" />
     <MESSAGE value="Hinzufügen von Trainingsabschluss &amp; Protokollierung (Punkt 5)" />
     <MESSAGE value="Verbessrung aus dem Review" />
     <MESSAGE value="Hinzufügen von Unit-Tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Hinzufügen von Unit-Tests" />
+    <MESSAGE value="Allgemeine Verbesserungen" />
+    <option name="LAST_COMMIT_MESSAGE" value="Allgemeine Verbesserungen" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

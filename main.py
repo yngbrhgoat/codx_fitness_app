@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import calendar
 import sqlite3
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.metrics import dp
 from kivy.properties import BooleanProperty, ListProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
-from kivy.metrics import dp
+from kivy.uix.spinner import Spinner
 
 import exercise_database
 
@@ -143,7 +149,12 @@ KV = """
         size_hint_y: None
         height: self.texture_size[1]
     Label:
-        text: root.description if root.show_details else ""
+        text: "Goal: {}".format(root.goal_label)
+        color: 0.16, 0.18, 0.26, 1
+        size_hint_y: None
+        height: self.texture_size[1]
+    Label:
+        text: root.description
         color: 0.1, 0.12, 0.18, 1
         text_size: self.width, None
         size_hint_y: None
@@ -178,7 +189,7 @@ KV = """
             text: "Add to plan"
             on_release: app.root.add_recommendation_to_plan(root.name)
         Button:
-            text: "Details"
+            text: "Hide details" if root.show_details else "Details"
             on_release: app.root.toggle_recommendation_details(root.name)
 
 <PlanItem>:
@@ -417,14 +428,6 @@ KV = """
                     row_default_height: dp(70)
                     size_hint_y: None
                     height: self.minimum_height
-                    Button:
-                        text: "Home"
-                        font_size: "26sp"
-                        bold: True
-                        background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
-                        color: 1, 1, 1, 1
-                        on_release: app.root.go_home()
                     Button:
                         text: "Browse"
                         font_size: "26sp"
@@ -758,7 +761,7 @@ KV = """
         BoxLayout:
             orientation: "vertical"
             padding: dp(12)
-            spacing: dp(10)
+            spacing: dp(12)
             size_hint_y: None
             height: self.minimum_height
             canvas.before:
@@ -779,110 +782,208 @@ KV = """
                 color: 0.2, 0.2, 0.3, 1
                 size_hint_y: None
                 height: dp(22)
-            GridLayout:
-                cols: 2
-                spacing: dp(8)
-                row_default_height: dp(34)
-                size_hint_y: None
-                height: self.minimum_height
-                Label:
-                    text: "Start date (YYYY-MM-DD)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: start_date_input
-                    multiline: False
-                    hint_text: "optional"
-                Label:
-                    text: "End date (YYYY-MM-DD)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: end_date_input
-                    multiline: False
-                    hint_text: "optional"
             BoxLayout:
-                size_hint_y: None
-                height: dp(40)
+                orientation: "vertical"
+                padding: dp(10)
                 spacing: dp(8)
-                Button:
-                    text: "Apply filter"
-                    on_release: app.root.apply_history_filter()
-                Button:
-                    text: "Clear filter"
-                    on_release: app.root.clear_history_filter()
-            Label:
-                text: "Log a completed workout"
-                bold: True
-                color: 0.14, 0.16, 0.24, 1
                 size_hint_y: None
-                height: dp(22)
-            BoxLayout:
-                size_hint_y: None
-                height: dp(70)
-                spacing: dp(12)
-                BoxLayout:
-                    orientation: "vertical"
-                    spacing: dp(4)
-                    Label:
-                        text: "Stats"
-                        bold: True
-                        color: 0.12, 0.14, 0.22, 1
-                        size_hint_y: None
-                        height: dp(20)
-                    Label:
-                        text: "Total workouts: {}".format(app.root.stats_total_workouts)
-                        color: 0.18, 0.18, 0.24, 1
-                        size_hint_y: None
-                        height: dp(18)
-                    Label:
-                        text: "Total time: {} min".format(app.root.stats_total_minutes)
-                        color: 0.18, 0.18, 0.24, 1
-                        size_hint_y: None
-                        height: dp(18)
-                    Label:
-                        text: "Top exercise: {}".format(app.root.stats_top_exercise)
-                        color: 0.18, 0.18, 0.24, 1
-                        size_hint_y: None
-                        height: dp(18)
-            GridLayout:
-                cols: 2
-                spacing: dp(8)
-                row_default_height: dp(34)
-                size_hint_y: None
-                height: self.minimum_height
+                height: dp(150)
+                canvas.before:
+                    Color:
+                        rgba: 0.94, 0.96, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
                 Label:
-                    text: "Workout date (YYYY-MM-DD)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: workout_date_input
-                    multiline: False
-                    hint_text: "e.g. 2025-12-10"
-                Label:
-                    text: "Duration (minutes)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: duration_input
-                    multiline: False
-                    input_filter: "int"
-                    hint_text: "e.g. 45"
-                Label:
-                    text: "Exercises (comma or newline separated)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: exercises_input
-                    multiline: True
+                    text: "At-a-glance stats"
+                    bold: True
+                    font_size: "16sp"
+                    color: 0.12, 0.14, 0.24, 1
                     size_hint_y: None
-                    height: dp(80)
-                    hint_text: "Push-Up, Plank, Jump Rope"
+                    height: dp(22)
+                GridLayout:
+                    cols: 3
+                    spacing: dp(10)
+                    size_hint_y: None
+                    row_default_height: dp(36)
+                    height: self.minimum_height
+                    BoxLayout:
+                        orientation: "vertical"
+                        spacing: dp(2)
+                        Label:
+                            text: "Total workouts"
+                            color: 0.16, 0.18, 0.28, 1
+                            font_size: "12sp"
+                        Label:
+                            text: app.root.stats_total_workouts
+                            bold: True
+                            font_size: "20sp"
+                            color: 0.1, 0.14, 0.26, 1
+                    BoxLayout:
+                        orientation: "vertical"
+                        spacing: dp(2)
+                        Label:
+                            text: "Total minutes"
+                            color: 0.16, 0.18, 0.28, 1
+                            font_size: "12sp"
+                        Label:
+                            text: app.root.stats_total_minutes
+                            bold: True
+                            font_size: "20sp"
+                            color: 0.1, 0.14, 0.26, 1
+                    BoxLayout:
+                        orientation: "vertical"
+                        spacing: dp(2)
+                        Label:
+                            text: "Top exercise"
+                            color: 0.16, 0.18, 0.28, 1
+                            font_size: "12sp"
+                        Label:
+                            text: app.root.stats_top_exercise
+                            bold: True
+                            font_size: "16sp"
+                            color: 0.1, 0.14, 0.26, 1
             BoxLayout:
-                size_hint_y: None
-                height: dp(40)
+                orientation: "vertical"
+                padding: dp(10)
                 spacing: dp(8)
-                Button:
-                    text: "Save workout"
-                    on_release: app.root.handle_add_workout()
-                Button:
-                    text: "Refresh history"
-                    on_release: app.root._load_history()
+                size_hint_y: None
+                height: self.minimum_height
+                canvas.before:
+                    Color:
+                        rgba: 0.95, 0.97, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                Label:
+                    text: "Filter by date"
+                    bold: True
+                    color: 0.14, 0.16, 0.24, 1
+                    size_hint_y: None
+                    height: dp(20)
+                Label:
+                    text: "Use the calendar buttons for quick start/end selection."
+                    color: 0.2, 0.2, 0.3, 1
+                    size_hint_y: None
+                    height: dp(18)
+                GridLayout:
+                    cols: 2
+                    spacing: dp(8)
+                    row_default_height: dp(36)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    Label:
+                        text: "Start date (YYYY-MM-DD)"
+                        color: 0.18, 0.18, 0.22, 1
+                    BoxLayout:
+                        spacing: dp(6)
+                        TextInput:
+                            id: start_date_input
+                            multiline: False
+                            hint_text: "optional"
+                        Button:
+                            text: "Pick"
+                            size_hint_x: None
+                            width: dp(70)
+                            on_release: app.root.open_date_picker("start")
+                    Label:
+                        text: "End date (YYYY-MM-DD)"
+                        color: 0.18, 0.18, 0.22, 1
+                    BoxLayout:
+                        spacing: dp(6)
+                        TextInput:
+                            id: end_date_input
+                            multiline: False
+                            hint_text: "optional"
+                        Button:
+                            text: "Pick"
+                            size_hint_x: None
+                            width: dp(70)
+                            on_release: app.root.open_date_picker("end")
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(8)
+                    Button:
+                        text: "Apply filter"
+                        on_release: app.root.apply_history_filter()
+                    Button:
+                        text: "Clear filter"
+                        on_release: app.root.clear_history_filter()
+            Label:
+                text: "Add a past workout"
+                bold: True
+                font_size: "17sp"
+                color: 0.12, 0.14, 0.22, 1
+                size_hint_y: None
+                height: dp(24)
+            Label:
+                text: "Recorded sessions must use known exercises from your library."
+                color: 0.18, 0.18, 0.26, 1
+                size_hint_y: None
+                height: dp(18)
+            BoxLayout:
+                orientation: "vertical"
+                padding: dp(10)
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+                canvas.before:
+                    Color:
+                        rgba: 0.95, 0.97, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                GridLayout:
+                    cols: 2
+                    spacing: dp(8)
+                    row_default_height: dp(34)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    Label:
+                        text: "Workout date (YYYY-MM-DD)"
+                        color: 0.18, 0.18, 0.22, 1
+                    BoxLayout:
+                        spacing: dp(6)
+                        TextInput:
+                            id: workout_date_input
+                            multiline: False
+                            hint_text: "e.g. 2025-12-10"
+                        Button:
+                            text: "Pick"
+                            size_hint_x: None
+                            width: dp(70)
+                            on_release: app.root.open_date_picker("workout")
+                    Label:
+                        text: "Duration (minutes)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: duration_input
+                        multiline: False
+                        input_filter: "int"
+                        hint_text: "e.g. 45"
+                    Label:
+                        text: "Exercises (comma or newline separated)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: exercises_input
+                        multiline: True
+                        size_hint_y: None
+                        height: dp(80)
+                        hint_text: "Push-Up, Plank, Jump Rope"
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(8)
+                    Button:
+                        text: "Save workout"
+                        on_release: app.root.handle_add_workout()
+                    Button:
+                        text: "Refresh history"
+                        on_release: app.root._load_history()
             Label:
                 text: app.root.history_status_text
                 color: app.root.history_status_color
@@ -977,6 +1078,11 @@ KV = """
             color: 0.12, 0.14, 0.22, 1
             size_hint_y: None
             height: dp(22)
+        Label:
+            text: "Plan goal: {}".format(app.root.rec_plan_goal_label or "Not set")
+            color: 0.18, 0.18, 0.26, 1
+            size_hint_y: None
+            height: dp(18)
         RecycleView:
             id: rec_plan_list
             viewclass: "PlanItem"
@@ -1173,6 +1279,89 @@ KV = """
 """
 
 
+class DatePickerPopup(Popup):
+    """Lightweight calendar picker to fill date fields without manual typing."""
+
+    def __init__(self, on_select: Callable[[str], None], initial_date: Optional[date] = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.on_select = on_select
+        base_date = initial_date or date.today()
+        self._year = base_date.year
+        self._month = base_date.month
+        self.title = "Select a date"
+        self.size_hint = (None, None)
+        self.size = (dp(360), dp(420))
+
+        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(8))
+        controls = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(8))
+        self.month_spinner = Spinner(
+            values=list(calendar.month_name[1:]),
+            text=calendar.month_name[self._month],
+            size_hint_x=0.6,
+        )
+        years = [str(self._year + offset) for offset in range(-2, 3)]
+        self.year_spinner = Spinner(values=years, text=str(self._year), size_hint_x=0.4)
+        self.month_spinner.bind(text=self._on_month_change)
+        self.year_spinner.bind(text=self._on_year_change)
+        controls.add_widget(self.month_spinner)
+        controls.add_widget(self.year_spinner)
+        root.add_widget(controls)
+
+        weekday_row = GridLayout(cols=7, spacing=dp(4), size_hint_y=None, height=dp(22))
+        for wd in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]:
+            weekday_row.add_widget(Label(text=wd, color=(0.2, 0.2, 0.3, 1), font_size="12sp"))
+        root.add_widget(weekday_row)
+
+        self.days_grid = GridLayout(cols=7, spacing=dp(4), size_hint_y=None)
+        self.days_grid.bind(minimum_height=self.days_grid.setter("height"))
+        root.add_widget(self.days_grid)
+
+        actions = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(8))
+        actions.add_widget(Button(text="Cancel", on_release=lambda *_: self.dismiss()))
+        actions.add_widget(Button(text="Clear", on_release=lambda *_: self._clear_and_close()))
+        root.add_widget(actions)
+
+        self.content = root
+        self._build_day_buttons()
+
+    def _on_month_change(self, spinner: Spinner, value: str) -> None:
+        self._month = list(calendar.month_name).index(value)
+        self._build_day_buttons()
+
+    def _on_year_change(self, spinner: Spinner, value: str) -> None:
+        try:
+            self._year = int(value)
+        except ValueError:
+            self._year = date.today().year
+        self._build_day_buttons()
+
+    def _clear_and_close(self) -> None:
+        self.on_select("")
+        self.dismiss()
+
+    def _select_day(self, day: int) -> None:
+        picked = date(self._year, self._month, day).isoformat()
+        self.on_select(picked)
+        self.dismiss()
+
+    def _build_day_buttons(self) -> None:
+        self.days_grid.clear_widgets()
+        first_weekday, days_in_month = calendar.monthrange(self._year, self._month)
+        for _ in range(first_weekday):
+            self.days_grid.add_widget(Label())
+        for day in range(1, days_in_month + 1):
+            btn = Button(
+                text=str(day),
+                size_hint_y=None,
+                height=dp(36),
+                background_normal="",
+                background_color=(0.18, 0.4, 0.85, 1),
+                color=(1, 1, 1, 1),
+            )
+            btn.bind(on_release=lambda inst, d=day: self._select_day(d))
+            self.days_grid.add_widget(btn)
+
+
 class ExerciseCard(BoxLayout):
     name = StringProperty()
     description = StringProperty()
@@ -1236,11 +1425,12 @@ class RecommendationCard(BoxLayout):
     description = StringProperty()
     muscle_group = StringProperty()
     equipment = StringProperty()
+    goal_label = StringProperty()
     suitability = StringProperty()
     estimated_minutes = StringProperty()
     score_display = StringProperty()
     recommendation = StringProperty()
-    show_details = StringProperty("0")
+    show_details = BooleanProperty(False)
 
 
 class RootWidget(BoxLayout):
@@ -1282,6 +1472,7 @@ class RootWidget(BoxLayout):
     rec_max_minutes_text = StringProperty("30")
     rec_recommendations = ListProperty()
     rec_plan = ListProperty()
+    rec_plan_goal_label = StringProperty("")
     rec_total_minutes = StringProperty("0")
     live_active = BooleanProperty(False)
     live_paused = BooleanProperty(False)
@@ -1421,6 +1612,9 @@ class RootWidget(BoxLayout):
             )
         return records
 
+    def _known_exercise_names(self) -> set[str]:
+        return {record["name"].lower() for record in self.records if record.get("name")}
+
     def _update_filter_options(self) -> None:
         muscle_choices = sorted({r["muscle_group"] for r in self.records})
         equipment_choices = sorted({r["equipment"] for r in self.records})
@@ -1484,6 +1678,34 @@ class RootWidget(BoxLayout):
         date_field = history_screen.ids.get("workout_date_input")
         if date_field and not date_field.text:
             date_field.text = date.today().isoformat()
+
+    def open_date_picker(self, target: str) -> None:
+        """Open a calendar picker for a given history field."""
+        try:
+            history_screen = self._history_screen()
+        except Exception:
+            return
+        target_field = {
+            "start": history_screen.ids.get("start_date_input"),
+            "end": history_screen.ids.get("end_date_input"),
+            "workout": history_screen.ids.get("workout_date_input"),
+        }.get(target)
+        if not target_field:
+            return
+        initial = None
+        try:
+            if target_field.text.strip():
+                initial = date.fromisoformat(target_field.text.strip())
+        except ValueError:
+            initial = None
+
+        def _apply(selection: str) -> None:
+            target_field.text = selection
+            if target in ("start", "end"):
+                self.apply_history_filter()
+
+        picker = DatePickerPopup(on_select=_apply, initial_date=initial)
+        picker.open()
 
     def on_goal_change(self, value: str) -> None:
         self.filter_goal = "All" if value == "All goals" else self._goal_label_map.get(value, "All")
@@ -1605,6 +1827,15 @@ class RootWidget(BoxLayout):
         normalized = raw.replace("\n", ",")
         return [part.strip() for part in normalized.split(",") if part.strip()]
 
+    def _validate_history_exercises(self, exercises: list[str]) -> Optional[str]:
+        if not exercises:
+            return "Add at least one exercise."
+        known_names = self._known_exercise_names()
+        unknown = [ex for ex in exercises if ex.lower() not in known_names]
+        if unknown:
+            return f"Unknown exercises: {', '.join(unknown)}."
+        return None
+
     def _parse_date_value(self, value: str, *, allow_empty: bool = False) -> Optional[str]:
         value = value.strip()
         if not value:
@@ -1721,8 +1952,9 @@ class RootWidget(BoxLayout):
             return
 
         exercises = self._split_exercises(ids.exercises_input.text)
-        if not exercises:
-            self._set_history_status("Add at least one exercise.", error=True)
+        error = self._validate_history_exercises(exercises)
+        if error:
+            self._set_history_status(error, error=True)
             return
 
         try:
@@ -1883,9 +2115,12 @@ class RootWidget(BoxLayout):
                     "sets": record.get("sets"),
                     "reps": record.get("reps"),
                     "time_seconds": record.get("time_seconds"),
+                    "goal_label": record.get("goal_label", self.rec_goal_spinner_text),
+                    "goal": record.get("goal", goal_code),
                     "estimated_minutes": str(est_minutes),
                     "score": score,
                     "score_display": str(score),
+                    "show_details": False,
                 }
             )
 
@@ -1893,8 +2128,6 @@ class RootWidget(BoxLayout):
         self.rec_recommendations = recommendations
         self._recommend_screen().ids.rec_list.data = recommendations
         self._set_rec_status(f"{len(recommendations)} exercises recommended.")
-        # Reset plan if goal changes
-        self._reset_plan(silent=True)
 
     def _find_recommendation(self, name: str) -> Optional[dict[str, Any]]:
         return next((rec for rec in self.rec_recommendations if rec["name"] == name), None)
@@ -1904,13 +2137,11 @@ class RootWidget(BoxLayout):
         if not rec:
             return
         # flip detail visibility for this item
-        current = rec.get("show_details") == "1"
+        current = bool(rec.get("show_details"))
         for r in self.rec_recommendations:
-            if r["name"] == name:
-                r["show_details"] = "0" if current else "1"
-            else:
-                r["show_details"] = r.get("show_details", "0")
-        self._recommend_screen().ids.rec_list.data = self.rec_recommendations
+            r["show_details"] = r["name"] == name and not current
+        self._recommend_screen().ids.rec_list.data = list(self.rec_recommendations)
+        self._recommend_screen().ids.rec_list.refresh_from_data()
         self._set_rec_status("Details toggled.")
 
     def add_recommendation_to_plan(self, name: str) -> None:
@@ -1920,17 +2151,21 @@ class RootWidget(BoxLayout):
         if any(item["name"] == name for item in self.rec_plan):
             self._set_rec_status(f"{name} is already in the plan.", error=True)
             return
+        goal_label = rec.get("goal_label") or self.rec_goal_spinner_text or ""
         plan_item = {
             "name": rec["name"],
             "icon": rec.get("icon", ""),
             "muscle_group": rec.get("muscle_group", ""),
             "equipment": rec.get("equipment", ""),
+            "goal": rec.get("goal", ""),
+            "goal_label": goal_label,
             "sets": rec.get("sets"),
             "reps": rec.get("reps"),
             "time_seconds": rec.get("time_seconds"),
             "recommendation": rec.get("recommendation", ""),
             "estimated_minutes": rec["estimated_minutes"],
-            "display": f'{rec["name"]} ({rec["estimated_minutes"]} min)',
+            "display": f'{rec["name"]} ({rec["estimated_minutes"]} min)'
+            + (f" - {goal_label}" if goal_label else ""),
         }
         self.rec_plan.append(plan_item)
         self._refresh_recommendation_view()
@@ -1939,20 +2174,33 @@ class RootWidget(BoxLayout):
         self.rec_recommendations = [r for r in self.rec_recommendations if r["name"] != name]
         self._recommend_screen().ids.rec_list.data = self.rec_recommendations
 
+    def _plan_goal_label(self) -> str:
+        labels = {item.get("goal_label") for item in self.rec_plan if item.get("goal_label")}
+        labels = {label for label in labels if label}
+        if not labels:
+            return ""
+        if len(labels) == 1:
+            return labels.pop()
+        return "Multiple goals"
+
+    def _update_plan_goal_label(self) -> None:
+        self.rec_plan_goal_label = self._plan_goal_label()
+
     def _refresh_recommendation_view(self) -> None:
         rv = self._recommend_screen().ids.rec_plan_list
         rv.data = [
             {
                 "name": item["name"],
-                "display": f'{item["name"]} ({item["estimated_minutes"]} min)',
+                "display": item.get("display", f'{item["name"]} ({item["estimated_minutes"]} min)'),
                 "index": str(idx),
             }
             for idx, item in enumerate(self.rec_plan)
         ]
-        total_minutes = sum(int(item["estimated_minutes"]) for item in self.rec_plan)
+        total_minutes = sum(int(item.get("estimated_minutes") or 0) for item in self.rec_plan)
         self.rec_total_minutes = str(total_minutes)
         self._validate_plan_time()
         rv.refresh_from_data()
+        self._update_plan_goal_label()
 
     def move_plan_item(self, name: str, direction: int) -> None:
         for idx, item in enumerate(self.rec_plan):
@@ -1983,6 +2231,8 @@ class RootWidget(BoxLayout):
                         "description": match["description"],
                         "muscle_group": match["muscle_group"],
                         "equipment": match["equipment"],
+                        "goal_label": match.get("goal_label", self._pretty_goal(match.get("goal", ""))),
+                        "goal": match.get("goal", goal_code),
                         "icon": match.get("icon", ""),
                         "suitability": match["suitability_display"],
                         "recommendation": match["recommendation"],
@@ -1992,7 +2242,7 @@ class RootWidget(BoxLayout):
                         "estimated_minutes": str(est_minutes),
                         "score": score,
                         "score_display": str(score),
-                        "show_details": "0",
+                        "show_details": False,
                     }
                 )
                 self.rec_recommendations.sort(key=lambda r: (-r["score"], r["name"]))
@@ -2001,6 +2251,7 @@ class RootWidget(BoxLayout):
     def _reset_plan(self, *, silent: bool = False) -> None:
         self.rec_plan = []
         self.rec_total_minutes = "0"
+        self.rec_plan_goal_label = ""
         rv = self._recommend_screen().ids.rec_plan_list
         rv.data = []
         rv.refresh_from_data()
@@ -2043,9 +2294,12 @@ class RootWidget(BoxLayout):
             return
         session_plan: list[dict[str, Any]] = []
         missing: list[str] = []
+        records_by_name_goal = {(r["name"], r.get("goal")): r for r in self.records}
         name_to_record = {r["name"]: r for r in self.records}
         for item in self.rec_plan:
-            record = name_to_record.get(item["name"])
+            record = records_by_name_goal.get((item["name"], item.get("goal")))
+            if not record:
+                record = name_to_record.get(item["name"])
             if not record:
                 missing.append(item["name"])
                 continue
@@ -2087,6 +2341,16 @@ class RootWidget(BoxLayout):
         except ValueError:
             raise ValueError("Enter positive numbers only.")
 
+    def _resolve_equipment_choice(self, selected_text: str) -> str:
+        selected = selected_text.strip()
+        if selected:
+            return selected
+        if "Bodyweight" in self.equipment_choice_options:
+            return "Bodyweight"
+        if self.equipment_choice_options:
+            return self.equipment_choice_options[0]
+        return "Bodyweight"
+
     def _set_status(self, message: str, *, error: bool = False) -> None:
         self.status_text = message
         self.status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
@@ -2115,7 +2379,7 @@ class RootWidget(BoxLayout):
         ids = self._add_screen().ids
         name = ids.name_input.text.strip()
         description = ids.description_input.text.strip()
-        equipment = ids.equipment_add_spinner.text.strip() or "Bodyweight"
+        equipment = self._resolve_equipment_choice(ids.equipment_add_spinner.text)
         goal_label = ids.goal_add_spinner.text
         goal = self._goal_label_map.get(goal_label)
         muscle_group = ids.muscle_add_spinner.text.strip()
@@ -2357,7 +2621,7 @@ class RootWidget(BoxLayout):
         self._live_completed = []
         self._live_skipped = []
         self._live_attempt_log = []
-        self._live_goal_label = self.rec_goal_spinner_text or ""
+        self._live_goal_label = self._plan_goal_label() or (self.rec_goal_spinner_text or "")
         self._live_total_sets_completed = 0
         self._live_current_logged = False
         self.live_paused = False
