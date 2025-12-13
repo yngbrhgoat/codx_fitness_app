@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Verbesserung der UI">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exercise_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/exercise_database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exercises.db" beforeDir="false" afterPath="$PROJECT_DIR$/exercises.db" afterDir="false" />
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Verbessrung aus dem Review">
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -213,7 +210,31 @@
       <option name="project" value="LOCAL" />
       <updated>1765618269027</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Hinzufügen von Trainingsabschluss &amp; Protokollierung (Punkt 5)">
+      <option name="closed" value="true" />
+      <created>1765620365487</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1765620365487</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Verbessrung aus dem Review">
+      <option name="closed" value="true" />
+      <created>1765620873977</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1765620873977</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Verbessrung aus dem Review">
+      <option name="closed" value="true" />
+      <created>1765621157077</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1765621157077</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -241,7 +262,9 @@
     <MESSAGE value="Nach removen aus der Liste für das Training wird diese Übung wieder in den Recommendations sehbar" />
     <MESSAGE value="einführen des Live-Modus" />
     <MESSAGE value="Verbesserung der UI" />
-    <option name="LAST_COMMIT_MESSAGE" value="Verbesserung der UI" />
+    <MESSAGE value="Hinzufügen von Trainingsabschluss &amp; Protokollierung (Punkt 5)" />
+    <MESSAGE value="Verbessrung aus dem Review" />
+    <option name="LAST_COMMIT_MESSAGE" value="Verbessrung aus dem Review" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

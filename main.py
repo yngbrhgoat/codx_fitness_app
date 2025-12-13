@@ -2366,6 +2366,14 @@ class RootWidget(BoxLayout):
             else:
                 self.live_tempo_hint = "Stay controlled and keep breathing."
 
+    def _compute_completion_percentage(self, completed: int, total: int) -> float:
+        """Return 0-100 completion percentage based on completed vs total planned items."""
+        if total <= 0 or completed <= 0:
+            return 0.0
+        ratio = completed / total
+        ratio = min(max(ratio, 0.0), 1.0)
+        return round(ratio * 100, 2)
+
     def _tick_live(self, dt: float) -> None:
         if not self.live_active or self.live_paused:
             return
