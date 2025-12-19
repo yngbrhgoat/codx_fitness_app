@@ -58,6 +58,9 @@ KV = """
         spacing: dp(6)
         size_hint_y: None
         row_default_height: dp(22)
+        height: self.minimum_height
+        col_force_default: True
+        col_default_width: self.width / 3
         Label:
             text: "Suitability: {}".format(root.suitability_display)
             color: 0.2, 0.2, 0.3, 1
@@ -418,14 +421,6 @@ KV = """
                     size_hint_y: None
                     height: self.minimum_height
                     Button:
-                        text: "Home"
-                        font_size: "26sp"
-                        bold: True
-                        background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
-                        color: 1, 1, 1, 1
-                        on_release: app.root.go_home()
-                    Button:
                         text: "Browse"
                         font_size: "26sp"
                         bold: True
@@ -449,22 +444,36 @@ KV = """
                         background_color: 0.18, 0.4, 0.85, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_users()
-                    Button:
-                        text: "History"
-                        font_size: "26sp"
-                        bold: True
-                        background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
-                        color: 1, 1, 1, 1
-                        on_release: app.root.go_history()
-                    Button:
-                        text: "Recommend"
-                        font_size: "26sp"
-                        bold: True
-                        background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
-                        color: 1, 1, 1, 1
-                        on_release: app.root.go_recommend()
+                AnchorLayout:
+                    anchor_x: "center"
+                    size_hint_y: None
+                    height: dp(70)
+                    BoxLayout:
+                        size_hint_y: None
+                        height: dp(70)
+                        size_hint_x: None
+                        width: self.minimum_width
+                        spacing: dp(12)
+                        Button:
+                            text: "History"
+                            font_size: "26sp"
+                            bold: True
+                            background_normal: ""
+                            background_color: 0.18, 0.4, 0.85, 1
+                            color: 1, 1, 1, 1
+                            size_hint_x: None
+                            width: dp(200)
+                            on_release: app.root.go_history()
+                        Button:
+                            text: "Recommend"
+                            font_size: "26sp"
+                            bold: True
+                            background_normal: ""
+                            background_color: 0.18, 0.4, 0.85, 1
+                            color: 1, 1, 1, 1
+                            size_hint_x: None
+                            width: dp(200)
+                            on_release: app.root.go_recommend()
 
 <BrowseScreen>:
     BoxLayout:
