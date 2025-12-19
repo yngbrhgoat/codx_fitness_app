@@ -2,6 +2,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import MethodType, SimpleNamespace
 
 # Keep Kivy quiet and headless during logic tests before importing Kivy modules.
 os.environ.setdefault("KIVY_NO_ARGS", "1")
@@ -142,6 +143,110 @@ class HistoryAndStatsTests(unittest.TestCase):
             self.assertEqual(stats["total_minutes"], 45)
             self.assertEqual(stats["top_exercise"], "Jump Rope")
             self.assertEqual(stats["top_exercise_count"], 2)
+
+
+class RegressionGuardTests(unittest.TestCase):
+    def test_validate_history_exercises_blocks_unknown(self) -> None:
+        dummy = SimpleNamespace()
+        dummy._known_exercise_names = lambda: {"push-up", "plank"}
+
+        error = RootWidget._validate_history_exercises(dummy, ["Push-Up", "Row"])
+        self.assertIn("Unknown exercises", error)
+        self.assertIsNone(RootWidget._validate_history_exercises(dummy, ["Plank"]))
+
+    def test_resolve_equipment_choice_prefers_available_option(self) -> None:
+        dummy = SimpleNamespace(equipment_choice_options=["Barbell", "Bands"])
+        first_choice = RootWidget._resolve_equipment_choice(dummy, "")
+        self.assertEqual(first_choice, "Barbell")
+
+        dummy.equipment_choice_options.append("Bodyweight")
+        prefer_bodyweight = RootWidget._resolve_equipment_choice(dummy, "")
+        self.assertEqual(prefer_bodyweight, "Bodyweight")
+
+        fallback = RootWidget._resolve_equipment_choice(SimpleNamespace(equipment_choice_options=[]), "")
+        self.assertEqual(fallback, "Bodyweight")
+
+    def test_toggle_recommendation_details_uses_boolean(self) -> None:
+        rec_list = SimpleNamespace(data=[], refresh_from_data=lambda: None)
+        rec_screen = SimpleNamespace(ids=SimpleNamespace(rec_list=rec_list))
+        dummy = SimpleNamespace(
+            rec_recommendations=[
+                {"name": "A", "show_details": False},
+                {"name": "B", "show_details": False},
+            ]
+        )
+        dummy._find_recommendation = lambda name: next((r for r in dummy.rec_recommendations if r["name"] == name), None)
+        dummy._recommend_screen = lambda: rec_screen
+        dummy._set_rec_status = lambda *args, **kwargs: None
+
+        RootWidget.toggle_recommendation_details(dummy, "A")
+        self.assertTrue(dummy.rec_recommendations[0]["show_details"])
+        self.assertFalse(dummy.rec_recommendations[1]["show_details"])
+
+        RootWidget.toggle_recommendation_details(dummy, "A")
+        self.assertFalse(dummy.rec_recommendations[0]["show_details"])
+
+    def test_plan_goal_label_handles_mixed_goals(self) -> None:
+        multi = SimpleNamespace(rec_plan=[{"goal_label": "Muscle Building"}, {"goal_label": "Weight Loss"}])
+        self.assertEqual(RootWidget._plan_goal_label(multi), "Multiple goals")
+
+        single = SimpleNamespace(rec_plan=[{"goal_label": "Endurance"}])
+        self.assertEqual(RootWidget._plan_goal_label(single), "Endurance")
+
+    def test_generate_recommendations_keeps_existing_plan(self) -> None:
+        rec_list = SimpleNamespace(data=[], refresh_from_data=lambda: None)
+        rec_ids = SimpleNamespace(rec_max_time=SimpleNamespace(text="30"), rec_list=rec_list)
+        rec_screen = SimpleNamespace(ids=rec_ids)
+        stub = SimpleNamespace(
+            rec_plan=[
+                {"name": "Push-Up", "estimated_minutes": "5", "goal": "muscle_building", "goal_label": "Muscle Building", "display": "Push-Up (5 min) - Muscle Building"}
+            ],
+            rec_recommendations=[],
+            rec_goal_spinner_text="Muscle Building",
+            rec_max_minutes_text="30",
+            records=[
+                {
+                    "name": "Push-Up",
+                    "goal": "muscle_building",
+                    "description": "desc",
+                    "muscle_group": "Chest",
+                    "equipment": "Bodyweight",
+                    "suitability_display": "8/10",
+                    "sets": 3,
+                    "reps": 10,
+                    "time_seconds": None,
+                    "recommendation": "Do it",
+                    "goal_label": "Muscle Building",
+                    "rating": 8,
+                },
+                {
+                    "name": "Row",
+                    "goal": "muscle_building",
+                    "description": "desc",
+                    "muscle_group": "Back",
+                    "equipment": "Cable",
+                    "suitability_display": "7/10",
+                    "sets": 3,
+                    "reps": 12,
+                    "time_seconds": None,
+                    "recommendation": "Rows",
+                    "goal_label": "Muscle Building",
+                    "rating": 7,
+                },
+            ],
+            _goal_label_map={"Muscle Building": "muscle_building"},
+        )
+        stub._require_user = lambda: True
+        stub._recency_days_map = lambda: {}
+        stub._recommend_screen = lambda: rec_screen
+        stub._set_rec_status = lambda *args, **kwargs: None
+        stub._estimate_minutes = MethodType(RootWidget._estimate_minutes, stub)
+        stub._score_recommendation = MethodType(RootWidget._score_recommendation, stub)
+
+        RootWidget.handle_generate_recommendations(stub)
+        self.assertEqual(len(stub.rec_plan), 1)
+        self.assertEqual(stub.rec_plan[0]["name"], "Push-Up")
+        self.assertTrue(all("goal_label" in rec for rec in stub.rec_recommendations))
 
 
 if __name__ == "__main__":

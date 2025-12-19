@@ -53,22 +53,20 @@ KV = """
         text_size: self.width, None
         size_hint_y: None
         height: self.texture_size[1]
-    BoxLayout:
-        orientation: "vertical"
-        spacing: dp(4)
+    GridLayout:
+        cols: 3
+        spacing: dp(6)
         size_hint_y: None
-        height: self.minimum_height
+        row_default_height: dp(22)
         Label:
-            text: "Goal scores: {}".format(root.goal_scores_display)
+            text: "Suitability: {}".format(root.suitability_display)
             color: 0.2, 0.2, 0.3, 1
-            text_size: self.width, None
-            size_hint_y: None
-            height: self.texture_size[1]
         Label:
-            text: "Muscle: {} | Equipment: {}".format(root.muscle_group, root.equipment)
+            text: "Muscle: {}".format(root.muscle_group)
             color: 0.15, 0.15, 0.2, 1
-            size_hint_y: None
-            height: self.texture_size[1]
+        Label:
+            text: "Equipment: {}".format(root.equipment)
+            color: 0.15, 0.15, 0.2, 1
     Label:
         text: "Recommendation: {}".format(root.recommendation)
         color: 0.2, 0.2, 0.28, 1
@@ -419,6 +417,14 @@ KV = """
                     row_default_height: dp(70)
                     size_hint_y: None
                     height: self.minimum_height
+                    Button:
+                        text: "Home"
+                        font_size: "26sp"
+                        bold: True
+                        background_normal: ""
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
+                        on_release: app.root.go_home()
                     Button:
                         text: "Browse"
                         font_size: "26sp"
@@ -1173,7 +1179,7 @@ class ExerciseCard(BoxLayout):
     goal_label = StringProperty()
     muscle_group = StringProperty()
     equipment = StringProperty()
-    goal_scores_display = StringProperty()
+    suitability_display = StringProperty()
     recommendation = StringProperty()
 
 
@@ -1337,30 +1343,6 @@ class RootWidget(BoxLayout):
     def _pretty_goal(self, goal: str) -> str:
         return goal.replace("_", " ").title()
 
-    def _format_recommendation(
-        self,
-        sets: Optional[int],
-        reps: Optional[int],
-        time_seconds: Optional[int],
-    ) -> str:
-        recommendation_parts = []
-        if sets is not None and reps is not None:
-            recommendation_parts.append(f"{sets} sets x {reps} reps")
-        elif sets is not None:
-            recommendation_parts.append(f"{sets} sets")
-        if time_seconds is not None:
-            recommendation_parts.append(f"{time_seconds}s hold")
-        return " • ".join(recommendation_parts) if recommendation_parts else "Adjust volume to preference"
-
-    def _format_goal_scores(self, goal_scores: dict[str, Optional[int]]) -> str:
-        parts = []
-        for goal in exercise_database.GOALS:
-            label = self._pretty_goal(goal)
-            rating = goal_scores.get(goal)
-            rating_display = f"{rating}/10" if rating is not None else "—"
-            parts.append(f"{label}: {rating_display}")
-        return " • ".join(parts)
-
     def _preferred_goal_label(self) -> str:
         """
         Pick a default goal label for forms:
@@ -1397,7 +1379,7 @@ class RootWidget(BoxLayout):
     def _load_records(self) -> list[dict[str, Any]]:
         with exercise_database.get_connection() as conn:
             rows = exercise_database.fetch_all(conn)
-        records_by_name: dict[str, dict[str, Any]] = {}
+        records: list[dict[str, Any]] = []
         for (
             name,
             icon,
@@ -1412,42 +1394,32 @@ class RootWidget(BoxLayout):
         ) in rows:
             if not name or not description:
                 continue
-            record = records_by_name.setdefault(
-                name,
+            recommendation_parts = []
+            if sets is not None and reps is not None:
+                recommendation_parts.append(f"{sets} sets x {reps} reps")
+            elif sets is not None:
+                recommendation_parts.append(f"{sets} sets")
+            if time_seconds is not None:
+                recommendation_parts.append(f"{time_seconds}s hold")
+            recommendation = " • ".join(recommendation_parts) if recommendation_parts else "Adjust volume to preference"
+            records.append(
                 {
                     "name": name,
                     "icon": icon or "",
                     "description": description,
                     "equipment": equipment,
                     "muscle_group": muscle_group,
-                    "goal_recommendations": {},
-                },
+                    "goal": goal,
+                    "goal_label": self._pretty_goal(goal),
+                    "suitability_display": f"{rating}/10",
+                    "rating": rating,
+                    "sets": sets,
+                    "reps": reps,
+                    "time_seconds": time_seconds,
+                    "recommendation": recommendation,
+                }
             )
-            goal_data = {
-                "rating": rating,
-                "sets": sets,
-                "reps": reps,
-                "time_seconds": time_seconds,
-                "recommendation": self._format_recommendation(sets, reps, time_seconds),
-            }
-            record["goal_recommendations"][goal] = goal_data
-
-        for record in records_by_name.values():
-            goal_recs = record["goal_recommendations"]
-            for goal in exercise_database.GOALS:
-                if goal not in goal_recs:
-                    goal_recs[goal] = {
-                        "rating": exercise_database.DEFAULT_GOAL_RATING,
-                        "sets": None,
-                        "reps": None,
-                        "time_seconds": None,
-                        "recommendation": "Adjust volume to preference",
-                    }
-            goal_scores = {goal: goal_recs[goal]["rating"] for goal in exercise_database.GOALS}
-            record["goal_scores"] = goal_scores
-            record["goal_scores_display"] = self._format_goal_scores(goal_scores)
-
-        return sorted(records_by_name.values(), key=lambda r: r["name"])
+        return records
 
     def _update_filter_options(self) -> None:
         muscle_choices = sorted({r["muscle_group"] for r in self.records})
@@ -1533,26 +1505,21 @@ class RootWidget(BoxLayout):
         for record in self.records:
             if not record.get("name") or not record.get("description"):
                 continue
-            goal_recs = record.get("goal_recommendations", {})
-            if self.filter_goal != "All" and self.filter_goal not in goal_recs:
+            if self.filter_goal != "All" and record["goal"] != self.filter_goal:
                 continue
             if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
                 continue
             if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
                 continue
-            if self.filter_goal != "All":
-                recommendation = goal_recs.get(self.filter_goal, {}).get("recommendation", "")
-            else:
-                recommendation = "Select a goal to see recommended sets, reps, or time."
             filtered.append(
                 {
                     "name": record["name"],
                     "description": record["description"],
-                    "goal_label": "",
+                    "goal_label": record["goal_label"],
                     "muscle_group": record["muscle_group"],
                     "equipment": record["equipment"],
-                    "goal_scores_display": record.get("goal_scores_display", ""),
-                    "recommendation": recommendation,
+                    "suitability_display": record["suitability_display"],
+                    "recommendation": record["recommendation"],
                 }
             )
         exercise_list = self._browse_screen().ids.exercise_list
@@ -1895,16 +1862,14 @@ class RootWidget(BoxLayout):
         recency_map = self._recency_days_map()
         recommendations = []
         for record in self.records:
-            goal_data = record.get("goal_recommendations", {}).get(goal_code)
-            if not goal_data:
+            if record["goal"] != goal_code:
                 continue
             if any(item["name"] == record["name"] for item in self.rec_plan):
                 continue
-            est_minutes = self._estimate_minutes(goal_data)
+            est_minutes = self._estimate_minutes(record)
             recency_days = recency_map.get(record["name"])
-            rating_value = goal_data.get("rating") or 0
             score = self._score_recommendation(
-                {"rating": float(rating_value)}, recency_days
+                {"rating": float(record.get("rating", 0))}, recency_days
             )
             recommendations.append(
                 {
@@ -1913,11 +1878,11 @@ class RootWidget(BoxLayout):
                     "description": record["description"],
                     "muscle_group": record["muscle_group"],
                     "equipment": record["equipment"],
-                    "suitability": f"{rating_value}/10",
-                    "recommendation": goal_data.get("recommendation", ""),
-                    "sets": goal_data.get("sets"),
-                    "reps": goal_data.get("reps"),
-                    "time_seconds": goal_data.get("time_seconds"),
+                    "suitability": record["suitability_display"],
+                    "recommendation": record["recommendation"],
+                    "sets": record.get("sets"),
+                    "reps": record.get("reps"),
+                    "time_seconds": record.get("time_seconds"),
                     "estimated_minutes": str(est_minutes),
                     "score": score,
                     "score_display": str(score),
@@ -2006,14 +1971,12 @@ class RootWidget(BoxLayout):
         # Return the exercise to recommendations list in sorted order if it fits the current goal.
         if self.rec_goal_spinner_text:
             goal_code = self._goal_label_map.get(self.rec_goal_spinner_text)
-            match = next((r for r in self.records if r["name"] == name), None)
-            goal_data = match.get("goal_recommendations", {}).get(goal_code) if match else None
-            if match and goal_data:
-                est_minutes = self._estimate_minutes(goal_data)
+            match = next((r for r in self.records if r["name"] == name and r["goal"] == goal_code), None)
+            if match:
+                est_minutes = self._estimate_minutes(match)
                 recency_map = self._recency_days_map()
                 recency_days = recency_map.get(match["name"])
-                rating_value = goal_data.get("rating") or 0
-                score = self._score_recommendation({"rating": float(rating_value)}, recency_days)
+                score = self._score_recommendation({"rating": float(match.get("rating", 0))}, recency_days)
                 self.rec_recommendations.append(
                     {
                         "name": match["name"],
@@ -2021,11 +1984,11 @@ class RootWidget(BoxLayout):
                         "muscle_group": match["muscle_group"],
                         "equipment": match["equipment"],
                         "icon": match.get("icon", ""),
-                        "suitability": f"{rating_value}/10",
-                        "recommendation": goal_data.get("recommendation", ""),
-                        "sets": goal_data.get("sets"),
-                        "reps": goal_data.get("reps"),
-                        "time_seconds": goal_data.get("time_seconds"),
+                        "suitability": match["suitability_display"],
+                        "recommendation": match["recommendation"],
+                        "sets": match.get("sets"),
+                        "reps": match.get("reps"),
+                        "time_seconds": match.get("time_seconds"),
                         "estimated_minutes": str(est_minutes),
                         "score": score,
                         "score_display": str(score),
@@ -2092,10 +2055,10 @@ class RootWidget(BoxLayout):
                     "icon": record.get("icon", ""),
                     "muscle_group": record.get("muscle_group", ""),
                     "equipment": record.get("equipment", ""),
-                    "sets": item.get("sets") or 3,
-                    "reps": item.get("reps"),
-                    "time_seconds": item.get("time_seconds"),
-                    "recommendation": item.get("recommendation", ""),
+                    "sets": record.get("sets") or item.get("sets") or 3,
+                    "reps": record.get("reps") or item.get("reps"),
+                    "time_seconds": record.get("time_seconds") or item.get("time_seconds"),
+                    "recommendation": record.get("recommendation", ""),
                     "estimated_minutes": item.get("estimated_minutes", "0"),
                 }
             )
