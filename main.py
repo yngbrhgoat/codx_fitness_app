@@ -496,6 +496,8 @@ KV = """
                 row_default_height: dp(26)
                 size_hint_y: None
                 height: self.minimum_height
+                col_force_default: True
+                col_default_width: self.width / 3
                 FilterLabel:
                     text: "Target suitability"
                 FilterLabel:
@@ -637,7 +639,7 @@ KV = """
                     text: app.root.rating_spinner_text
                     values: ("1","2","3","4","5","6","7","8","9","10")
                 Label:
-                    text: "Recommended sets (optional)"
+                    text: "Recommended sets (optional, e.g. 3)"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
                     id: sets_input
@@ -645,7 +647,7 @@ KV = """
                     input_filter: "int"
                     hint_text: "blank -> stored as NULL"
                 Label:
-                    text: "Recommended reps (optional)"
+                    text: "Recommended reps (optional, e.g. 10)"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
                     id: reps_input
@@ -653,7 +655,7 @@ KV = """
                     input_filter: "int"
                     hint_text: "blank -> stored as NULL"
                 Label:
-                    text: "Recommended time (sec, optional)"
+                    text: "Recommended time (sec, optional, e.g. 45)"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
                     id: time_input
@@ -818,12 +820,6 @@ KV = """
                 Button:
                     text: "Clear filter"
                     on_release: app.root.clear_history_filter()
-            Label:
-                text: "Log a completed workout"
-                bold: True
-                color: 0.14, 0.16, 0.24, 1
-                size_hint_y: None
-                height: dp(22)
             BoxLayout:
                 size_hint_y: None
                 height: dp(70)
@@ -852,43 +848,59 @@ KV = """
                         color: 0.18, 0.18, 0.24, 1
                         size_hint_y: None
                         height: dp(18)
-            GridLayout:
-                cols: 2
-                spacing: dp(8)
-                row_default_height: dp(34)
+            Button:
+                text: "Log a completed workout" if not app.root.show_workout_form else "Hide workout form"
                 size_hint_y: None
-                height: self.minimum_height
-                Label:
-                    text: "Workout date (YYYY-MM-DD)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: workout_date_input
-                    multiline: False
-                    hint_text: "e.g. 2025-12-10"
-                Label:
-                    text: "Duration (minutes)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: duration_input
-                    multiline: False
-                    input_filter: "int"
-                    hint_text: "e.g. 45"
-                Label:
-                    text: "Exercises (comma or newline separated)"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: exercises_input
-                    multiline: True
+                height: dp(40)
+                on_release: app.root.toggle_workout_form()
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height if app.root.show_workout_form else 0
+                opacity: 1 if app.root.show_workout_form else 0
+                disabled: not app.root.show_workout_form
+                GridLayout:
+                    cols: 2
+                    spacing: dp(8)
+                    row_default_height: dp(34)
                     size_hint_y: None
-                    height: dp(80)
-                    hint_text: "Push-Up, Plank, Jump Rope"
+                    height: self.minimum_height
+                    Label:
+                        text: "Workout date (YYYY-MM-DD)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: workout_date_input
+                        multiline: False
+                        hint_text: "e.g. 2025-12-10"
+                    Label:
+                        text: "Duration (minutes)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: duration_input
+                        multiline: False
+                        input_filter: "int"
+                        hint_text: "e.g. 45"
+                    Label:
+                        text: "Exercises (comma or newline separated)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: exercises_input
+                        multiline: True
+                        size_hint_y: None
+                        height: dp(80)
+                        hint_text: "Push-Up, Plank, Jump Rope"
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(40)
+                    spacing: dp(8)
+                    Button:
+                        text: "Save workout"
+                        on_release: app.root.handle_add_workout()
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
                 spacing: dp(8)
-                Button:
-                    text: "Save workout"
-                    on_release: app.root.handle_add_workout()
                 Button:
                     text: "Refresh history"
                     on_release: app.root._load_history()
@@ -1282,6 +1294,7 @@ class RootWidget(BoxLayout):
     user_status_color = ListProperty((0.14, 0.4, 0.2, 1))
     history_status_text = StringProperty("")
     history_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    show_workout_form = BooleanProperty(False)
     stats_total_workouts = StringProperty("0")
     stats_total_minutes = StringProperty("0")
     stats_top_exercise = StringProperty("—")
@@ -1520,6 +1533,9 @@ class RootWidget(BoxLayout):
                 continue
             if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
                 continue
+            suitability_display = record["suitability_display"]
+            if self.filter_goal == "All":
+                suitability_display = f'{record["goal_label"]} ({record["suitability_display"]})'
             filtered.append(
                 {
                     "name": record["name"],
@@ -1527,7 +1543,7 @@ class RootWidget(BoxLayout):
                     "goal_label": record["goal_label"],
                     "muscle_group": record["muscle_group"],
                     "equipment": record["equipment"],
-                    "suitability_display": record["suitability_display"],
+                    "suitability_display": suitability_display,
                     "recommendation": record["recommendation"],
                 }
             )
@@ -1629,6 +1645,9 @@ class RootWidget(BoxLayout):
     def _set_history_status(self, message: str, *, error: bool = False) -> None:
         self.history_status_text = message
         self.history_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def toggle_workout_form(self) -> None:
+        self.show_workout_form = not self.show_workout_form
 
     def _load_history(self, *_: Any) -> None:
         try:
