@@ -13,6 +13,7 @@ GOALS = (
     "strength_increase",
     "endurance_increase",
 )
+DEFAULT_GOAL_RATING = 5
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
@@ -332,6 +333,7 @@ def add_exercise(
     target_muscle_group: str,
     goal: str,
     suitability_rating: int,
+    goal_ratings: Optional[dict[str, int]] = None,
     recommended_sets: Optional[int] = None,
     recommended_reps_per_set: Optional[int] = None,
     recommended_time_seconds: Optional[int] = None,
@@ -339,10 +341,14 @@ def add_exercise(
     db_path: Path = DB_PATH,
 ) -> int:
     """
-    Insert a new exercise and a single goal recommendation. Returns new exercise id.
+    Insert a new exercise and per-goal recommendations. Returns new exercise id.
 
     The database constraints enforce goal membership and rating range.
+    Missing goal ratings fall back to DEFAULT_GOAL_RATING.
     """
+    if goal_ratings is None:
+        goal_ratings = {}
+    fallback_rating = suitability_rating if suitability_rating is not None else DEFAULT_GOAL_RATING
     with get_connection(db_path) as conn:
         cursor = conn.execute(
             """
@@ -352,26 +358,33 @@ def add_exercise(
             (name, icon, short_description, required_equipment, target_muscle_group),
         )
         exercise_id = cursor.lastrowid
-        conn.execute(
-            """
-            INSERT INTO goal_recommendations (
-                exercise_id,
-                goal,
-                suitability_rating,
-                recommended_sets,
-                recommended_reps_per_set,
-                recommended_time_seconds
-            ) VALUES (?, ?, ?, ?, ?, ?);
-            """,
-            (
-                exercise_id,
-                goal,
-                suitability_rating,
-                recommended_sets,
-                recommended_reps_per_set,
-                recommended_time_seconds,
-            ),
-        )
+        for goal_code in GOALS:
+            rating = goal_ratings.get(goal_code)
+            if rating is None:
+                rating = suitability_rating if goal_code == goal else fallback_rating
+            sets_value = recommended_sets if goal_code == goal else None
+            reps_value = recommended_reps_per_set if goal_code == goal else None
+            time_value = recommended_time_seconds if goal_code == goal else None
+            conn.execute(
+                """
+                INSERT INTO goal_recommendations (
+                    exercise_id,
+                    goal,
+                    suitability_rating,
+                    recommended_sets,
+                    recommended_reps_per_set,
+                    recommended_time_seconds
+                ) VALUES (?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    exercise_id,
+                    goal_code,
+                    rating,
+                    sets_value,
+                    reps_value,
+                    time_value,
+                ),
+            )
         conn.commit()
         return exercise_id
 
