@@ -145,6 +145,30 @@ class HistoryAndStatsTests(unittest.TestCase):
             self.assertEqual(stats["top_exercise_count"], 2)
 
 
+class ParsingHelperTests(unittest.TestCase):
+    def test_split_exercises_normalizes_commas_and_newlines(self) -> None:
+        result = RootWidget._split_exercises(object(), "Push-Up, Squat\n\nPlank, ")
+        self.assertEqual(result, ["Push-Up", "Squat", "Plank"])
+
+    def test_parse_date_value_handles_empty_and_invalid(self) -> None:
+        dummy = object()
+        self.assertIsNone(RootWidget._parse_date_value(dummy, "  ", allow_empty=True))
+        with self.assertRaises(ValueError):
+            RootWidget._parse_date_value(dummy, "  ", allow_empty=False)
+        with self.assertRaises(ValueError):
+            RootWidget._parse_date_value(dummy, "2024/01/01")
+
+    def test_parse_optional_int_accepts_positive_only(self) -> None:
+        dummy = object()
+        self.assertEqual(RootWidget._parse_optional_int(dummy, "7"), 7)
+        with self.assertRaises(ValueError):
+            RootWidget._parse_optional_int(dummy, "0")
+        with self.assertRaises(ValueError):
+            RootWidget._parse_optional_int(dummy, "-3")
+        with self.assertRaises(ValueError):
+            RootWidget._parse_optional_int(dummy, "abc")
+
+
 class RegressionGuardTests(unittest.TestCase):
     def test_validate_history_exercises_blocks_unknown(self) -> None:
         dummy = SimpleNamespace()
@@ -242,6 +266,7 @@ class RegressionGuardTests(unittest.TestCase):
         stub._set_rec_status = lambda *args, **kwargs: None
         stub._estimate_minutes = MethodType(RootWidget._estimate_minutes, stub)
         stub._score_recommendation = MethodType(RootWidget._score_recommendation, stub)
+        stub._plan_goal_label = MethodType(RootWidget._plan_goal_label, stub)
 
         RootWidget.handle_generate_recommendations(stub)
         self.assertEqual(len(stub.rec_plan), 1)

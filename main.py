@@ -6,6 +6,11 @@ from datetime import date, datetime
 from functools import partial
 from typing import Any, Optional
 
+from kivy.config import Config
+
+# Avoid probing input devices via xinput under Xwayland.
+Config.remove_option("input", "%(name)s")
+
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -21,6 +26,12 @@ import exercise_database
 
 KV = """
 #:import dp kivy.metrics.dp
+
+<Button>:
+    background_normal: ""
+    background_down: ""
+    background_color: 0.18, 0.4, 0.85, 1
+    color: 1, 1, 1, 1
 
 <FilterLabel@Label>:
     color: 0.2, 0.2, 0.25, 1
@@ -234,7 +245,7 @@ KV = """
         spacing: dp(8)
         canvas.before:
             Color:
-                rgba: 0.96, 0.98, 1, 1
+                rgba: 1, 1, 1, 1
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -265,8 +276,8 @@ KV = """
                 width: dp(44)
                 background_normal: ""
                 background_down: ""
-                background_color: 0.9, 0.95, 1, 1
-                color: 0.12, 0.14, 0.22, 1
+                background_color: 0.18, 0.4, 0.85, 1
+                color: 1, 1, 1, 1
                 on_release: root.shift_month(-1)
             Label:
                 text: root.month_label
@@ -281,8 +292,8 @@ KV = """
                 width: dp(44)
                 background_normal: ""
                 background_down: ""
-                background_color: 0.9, 0.95, 1, 1
-                color: 0.12, 0.14, 0.22, 1
+                background_color: 0.18, 0.4, 0.85, 1
+                color: 1, 1, 1, 1
                 on_release: root.shift_month(1)
         BoxLayout:
             size_hint_y: None
@@ -294,8 +305,8 @@ KV = """
                 width: dp(84)
                 background_normal: ""
                 background_down: ""
-                background_color: 0.9, 0.95, 1, 1
-                color: 0.12, 0.14, 0.22, 1
+                background_color: 0.18, 0.4, 0.85, 1
+                color: 1, 1, 1, 1
                 on_release: root.shift_year(-1)
             Button:
                 text: "-3 mo"
@@ -303,8 +314,8 @@ KV = """
                 width: dp(70)
                 background_normal: ""
                 background_down: ""
-                background_color: 0.92, 0.96, 1, 1
-                color: 0.12, 0.14, 0.22, 1
+                background_color: 0.18, 0.4, 0.85, 1
+                color: 1, 1, 1, 1
                 on_release: root.shift_month(-3)
             Widget:
             Button:
@@ -313,8 +324,8 @@ KV = """
                 width: dp(70)
                 background_normal: ""
                 background_down: ""
-                background_color: 0.92, 0.96, 1, 1
-                color: 0.12, 0.14, 0.22, 1
+                background_color: 0.18, 0.4, 0.85, 1
+                color: 1, 1, 1, 1
                 on_release: root.shift_month(3)
             Button:
                 text: "Year >>"
@@ -322,8 +333,8 @@ KV = """
                 width: dp(84)
                 background_normal: ""
                 background_down: ""
-                background_color: 0.9, 0.95, 1, 1
-                color: 0.12, 0.14, 0.22, 1
+                background_color: 0.18, 0.4, 0.85, 1
+                color: 1, 1, 1, 1
                 on_release: root.shift_year(1)
         GridLayout:
             id: day_grid
@@ -359,7 +370,7 @@ KV = """
         spacing: dp(8)
         canvas.before:
             Color:
-                rgba: 0.96, 0.99, 1, 1
+                rgba: 1, 1, 1, 1
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
@@ -485,7 +496,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 0.96, 0.99, 1, 1
+                rgba: 1, 1, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -698,14 +709,6 @@ KV = """
                 size_hint_y: None
                 height: self.minimum_height
                 Label:
-                    text: "Display name"
-                    color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    text: app.root.user_profile_name
-                    multiline: False
-                    hint_text: "What should we call you?"
-                    on_text: app.root.user_profile_name = self.text
-                Label:
                     text: "Goal"
                     color: 0.18, 0.18, 0.22, 1
                 Spinner:
@@ -789,7 +792,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 0.98, 0.98, 1, 1
+                rgba: 1, 1, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -851,7 +854,7 @@ KV = """
             height: self.minimum_height
             canvas.before:
                 Color:
-                    rgba: 0.98, 0.98, 1, 1
+                    rgba: 1, 1, 1, 1
                 Rectangle:
                     pos: self.pos
                     size: self.size
@@ -952,7 +955,7 @@ KV = """
                     id: sets_input
                     multiline: False
                     input_filter: "int"
-                    hint_text: "blank -> stored as NULL"
+                    hint_text: "e.g. 3 (optional)"
                 Label:
                     text: "Recommended reps (optional, e.g. 10)"
                     color: 0.18, 0.18, 0.22, 1
@@ -960,7 +963,7 @@ KV = """
                     id: reps_input
                     multiline: False
                     input_filter: "int"
-                    hint_text: "blank -> stored as NULL"
+                    hint_text: "e.g. 10 (optional)"
                 Label:
                     text: "Recommended time (sec, optional, e.g. 45)"
                     color: 0.18, 0.18, 0.22, 1
@@ -968,7 +971,7 @@ KV = """
                     id: time_input
                     multiline: False
                     input_filter: "int"
-                    hint_text: "blank -> stored as NULL"
+                    hint_text: "e.g. 45 (seconds, optional)"
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
@@ -989,7 +992,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 0.98, 0.98, 1, 1
+                rgba: 1, 1, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -1008,30 +1011,45 @@ KV = """
                     color: 0.12, 0.14, 0.22, 1
                     size_hint_y: None
                     height: dp(26)
-                Label:
-                    text: "Choose an existing user to continue."
-                    color: 0.2, 0.2, 0.3, 1
-                    size_hint_y: None
-                    height: dp(20)
-                BoxLayout:
+                    text_size: self.width, None
+                    halign: "center"
+                AnchorLayout:
+                    anchor_x: "center"
                     size_hint_y: None
                     height: dp(44)
-                    spacing: dp(8)
                     Spinner:
                         id: user_spinner
                         text: app.root.user_spinner_text
                         values: app.root.user_options
                         on_text: app.root.on_user_selected(self.text)
-                    Button:
-                        text: "Open history"
                         size_hint_x: None
-                        width: dp(140)
-                        on_release: app.root.go_history()
+                        width: dp(240)
+                        text_size: self.size
+                        halign: "center"
+                        valign: "middle"
+                Label:
+                    text: "Pick a user to get started."
+                    color: 0.2, 0.2, 0.3, 1
+                    size_hint_y: None
+                    height: dp(20)
+                    text_size: self.width, None
+                    halign: "center"
                 Label:
                     text: "Current user: {}".format(app.root.current_user_display)
                     color: 0.2, 0.2, 0.3, 1
                     size_hint_y: None
                     height: dp(22)
+                    text_size: self.width, None
+                    halign: "center"
+                AnchorLayout:
+                    anchor_x: "center"
+                    size_hint_y: None
+                    height: dp(40)
+                    Button:
+                        text: "Open history"
+                        size_hint_x: None
+                        width: dp(160)
+                        on_release: app.root.go_history()
                 Label:
                     text: ""
                     size_hint_y: None
@@ -1081,7 +1099,7 @@ KV = """
             height: self.minimum_height
             canvas.before:
                 Color:
-                    rgba: 0.98, 0.98, 1, 1
+                    rgba: 1, 1, 1, 1
                 Rectangle:
                     pos: self.pos
                     size: self.size
@@ -1210,7 +1228,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 0.96, 0.99, 1, 1
+                rgba: 1, 1, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -1312,7 +1330,7 @@ KV = """
             height: self.minimum_height
             canvas.before:
                 Color:
-                    rgba: 0.97, 0.98, 1, 1
+                    rgba: 1, 1, 1, 1
                 Rectangle:
                     pos: self.pos
                     size: self.size
@@ -1393,7 +1411,7 @@ KV = """
     orientation: "vertical"
     canvas.before:
         Color:
-            rgba: 0.98, 0.98, 1, 1
+            rgba: 1, 1, 1, 1
         Rectangle:
             pos: self.pos
             size: self.size
@@ -1405,7 +1423,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 0.94, 0.95, 1, 1
+                rgba: 1, 1, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
