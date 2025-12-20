@@ -29,7 +29,9 @@ def create_schema(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE
+            username TEXT NOT NULL UNIQUE,
+            display_name TEXT,
+            preferred_goal TEXT
         );
         """
     )
@@ -97,6 +99,8 @@ def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, de
 
 def migrate_schema(conn: sqlite3.Connection) -> None:
     """Ensure newer columns exist for enriched workout logging."""
+    _add_column_if_missing(conn, "users", "display_name", "display_name TEXT")
+    _add_column_if_missing(conn, "users", "preferred_goal", "preferred_goal TEXT")
     _add_column_if_missing(conn, "workouts", "duration_seconds", "duration_seconds INTEGER")
     _add_column_if_missing(conn, "workouts", "goal", "goal TEXT")
     _add_column_if_missing(conn, "workouts", "total_sets_completed", "total_sets_completed INTEGER DEFAULT 0")
@@ -111,13 +115,11 @@ def migrate_schema(conn: sqlite3.Connection) -> None:
 
 def seed_sample_data(conn: sqlite3.Connection) -> None:
     """
-    Seed a handful of exercises with per-goal recommendations.
+    Seed a baseline set of exercises with per-goal recommendations.
 
-    The seed step is skipped when rows are already present so reruns remain safe.
+    Existing entries are skipped so reruns remain safe.
     """
-    existing = conn.execute("SELECT COUNT(*) FROM exercises;").fetchone()[0]
-    if existing:
-        return
+    existing_names = {row[0].strip().lower() for row in conn.execute("SELECT name FROM exercises;")}
 
     exercises = [
         {
@@ -125,7 +127,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "icon": "push_up",
             "short_description": "Bodyweight push for chest, shoulders, and triceps.",
             "required_equipment": "Bodyweight (mat optional)",
-            "target_muscle_group": "Chest, shoulders, triceps",
+            "target_muscle_group": "Chest",
             "recommendations": {
                 "muscle_building": {
                     "suitability_rating": 8,
@@ -252,6 +254,600 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
                 },
             },
         },
+        {
+            "name": "Bench Press",
+            "icon": "bench_press",
+            "short_description": "Barbell press focused on chest strength and power.",
+            "required_equipment": "Barbell",
+            "target_muscle_group": "Chest",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 9,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 10,
+                    "recommended_sets": 5,
+                    "recommended_reps_per_set": 5,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 5,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Dumbbell Chest Fly",
+            "icon": "dumbbell_chest_fly",
+            "short_description": "Chest isolation move emphasizing stretch and control.",
+            "required_equipment": "Dumbbells",
+            "target_muscle_group": "Chest",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 5,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Dumbbell Bicep Curl",
+            "icon": "dumbbell_bicep_curl",
+            "short_description": "Classic curl for biceps strength and size.",
+            "required_equipment": "Dumbbells",
+            "target_muscle_group": "Biceps",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 5,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Overhead Tricep Extension",
+            "icon": "overhead_tricep_extension",
+            "short_description": "Overhead extension to target the triceps long head.",
+            "required_equipment": "Dumbbells",
+            "target_muscle_group": "Triceps",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Tricep Dip",
+            "icon": "tricep_dip",
+            "short_description": "Bodyweight dip emphasizing triceps and chest.",
+            "required_equipment": "Bodyweight",
+            "target_muscle_group": "Triceps",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Dumbbell Shoulder Press",
+            "icon": "dumbbell_shoulder_press",
+            "short_description": "Overhead press building shoulder strength and stability.",
+            "required_equipment": "Dumbbells",
+            "target_muscle_group": "Shoulders",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Goblet Squat",
+            "icon": "goblet_squat",
+            "short_description": "Front-loaded squat to train legs and core.",
+            "required_equipment": "Kettlebell",
+            "target_muscle_group": "Legs",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 5,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Walking Lunge",
+            "icon": "walking_lunge",
+            "short_description": "Alternating lunges for legs and balance.",
+            "required_equipment": "Bodyweight",
+            "target_muscle_group": "Legs",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 16,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Pull-Up",
+            "icon": "pull_up",
+            "short_description": "Vertical pulling for back and biceps strength.",
+            "required_equipment": "Pull-up Bar",
+            "target_muscle_group": "Back",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 9,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 9,
+                    "recommended_sets": 5,
+                    "recommended_reps_per_set": 5,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Lat Pulldown",
+            "icon": "lat_pulldown",
+            "short_description": "Cable pulldown targeting the lats and upper back.",
+            "required_equipment": "Cable Machine",
+            "target_muscle_group": "Back",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Seated Cable Row",
+            "icon": "seated_cable_row",
+            "short_description": "Horizontal pull for mid-back strength.",
+            "required_equipment": "Cable Machine",
+            "target_muscle_group": "Back",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Kettlebell Swing",
+            "icon": "kettlebell_swing",
+            "short_description": "Explosive hip hinge for full-body power and conditioning.",
+            "required_equipment": "Kettlebell",
+            "target_muscle_group": "Full Body",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 9,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 9,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 25,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Russian Twist",
+            "icon": "russian_twist",
+            "short_description": "Rotational core exercise for obliques.",
+            "required_equipment": "Medicine Ball",
+            "target_muscle_group": "Core",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 30,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 5,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 40,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Glute Bridge",
+            "icon": "glute_bridge",
+            "short_description": "Hip extension targeting glutes and hamstrings.",
+            "required_equipment": "Bodyweight",
+            "target_muscle_group": "Glutes",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 8,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Calf Raise",
+            "icon": "calf_raise",
+            "short_description": "Simple raise to build calf strength and endurance.",
+            "required_equipment": "Bodyweight",
+            "target_muscle_group": "Calves",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 25,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Band Pull-Apart",
+            "icon": "band_pull_apart",
+            "short_description": "Band drill to strengthen shoulders and upper back.",
+            "required_equipment": "Resistance Bands",
+            "target_muscle_group": "Shoulders",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 5,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 25,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Leg Press",
+            "icon": "leg_press",
+            "short_description": "Machine press to load the legs safely.",
+            "required_equipment": "Machine",
+            "target_muscle_group": "Legs",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 4,
+                    "recommended_reps_per_set": 10,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 12,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 9,
+                    "recommended_sets": 5,
+                    "recommended_reps_per_set": 6,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
+        {
+            "name": "Bicycle Crunch",
+            "icon": "bicycle_crunch",
+            "short_description": "Alternating crunch for core endurance.",
+            "required_equipment": "Bodyweight",
+            "target_muscle_group": "Core",
+            "recommendations": {
+                "muscle_building": {
+                    "suitability_rating": 6,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 20,
+                    "recommended_time_seconds": None,
+                },
+                "weight_loss": {
+                    "suitability_rating": 8,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 30,
+                    "recommended_time_seconds": None,
+                },
+                "strength_increase": {
+                    "suitability_rating": 5,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 15,
+                    "recommended_time_seconds": None,
+                },
+                "endurance_increase": {
+                    "suitability_rating": 7,
+                    "recommended_sets": 3,
+                    "recommended_reps_per_set": 40,
+                    "recommended_time_seconds": None,
+                },
+            },
+        },
     ]
 
     exercise_stmt = """
@@ -273,6 +869,8 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
     """
 
     for exercise in exercises:
+        if exercise["name"].strip().lower() in existing_names:
+            continue
         cursor = conn.execute(
             exercise_stmt,
             (
@@ -297,6 +895,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
                     recommendation.get("recommended_time_seconds"),
                 ),
             )
+        existing_names.add(exercise["name"].strip().lower())
 
     conn.commit()
 
@@ -389,20 +988,53 @@ def add_exercise(
         return exercise_id
 
 
-def add_user(username: str, *, db_path: Path = DB_PATH) -> int:
+def add_user(
+    username: str,
+    *,
+    display_name: Optional[str] = None,
+    preferred_goal: Optional[str] = None,
+    db_path: Path = DB_PATH,
+) -> int:
     """Register a new user and return the user id."""
     username = username.strip()
     if not username:
         raise ValueError("Username is required.")
+    if display_name is None:
+        display_name = username
     with get_connection(db_path) as conn:
-        cursor = conn.execute("INSERT INTO users (username) VALUES (?);", (username,))
+        cursor = conn.execute(
+            "INSERT INTO users (username, display_name, preferred_goal) VALUES (?, ?, ?);",
+            (username, display_name, preferred_goal),
+        )
         conn.commit()
         return cursor.lastrowid
 
 
-def fetch_users(conn: sqlite3.Connection) -> list[tuple[int, str]]:
-    """Return a list of user ids and usernames."""
-    return conn.execute("SELECT id, username FROM users ORDER BY username;").fetchall()
+def fetch_users(conn: sqlite3.Connection) -> list[tuple[int, str, Optional[str], Optional[str]]]:
+    """Return a list of user ids, usernames, display names, and preferred goals."""
+    return conn.execute(
+        "SELECT id, username, display_name, preferred_goal FROM users ORDER BY username;"
+    ).fetchall()
+
+
+def update_user_profile(
+    *,
+    user_id: int,
+    display_name: Optional[str],
+    preferred_goal: Optional[str],
+    db_path: Path = DB_PATH,
+) -> None:
+    """Update profile details for a user."""
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET display_name = ?, preferred_goal = ?
+            WHERE id = ?;
+            """,
+            (display_name, preferred_goal, user_id),
+        )
+        conn.commit()
 
 
 def log_workout(

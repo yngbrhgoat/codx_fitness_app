@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import calendar
 import sqlite3
 from datetime import date, datetime
+from functools import partial
 from typing import Any, Optional
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.properties import BooleanProperty, ListProperty, StringProperty
+from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.modalview import ModalView
 from kivy.uix.screenmanager import Screen
 from kivy.metrics import dp
 
@@ -98,7 +103,7 @@ KV = """
         size_hint_y: None
         height: self.texture_size[1]
     Label:
-        text: "Duration: {} min".format(root.duration_display)
+        text: "Duration: {}".format(root.duration_display)
         color: 0.18, 0.18, 0.22, 1
         size_hint_y: None
         height: self.texture_size[1]
@@ -218,6 +223,186 @@ KV = """
         size_hint_x: None
         width: dp(90)
         on_release: app.root.remove_plan_item(root.name)
+
+<DatePickerPopup>:
+    size_hint: None, None
+    size: dp(320), dp(380)
+    auto_dismiss: False
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(10)
+        spacing: dp(8)
+        canvas.before:
+            Color:
+                rgba: 0.96, 0.98, 1, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [10,]
+        BoxLayout:
+            size_hint_y: None
+            height: dp(32)
+            spacing: dp(8)
+            Button:
+                text: "<"
+                size_hint_x: None
+                width: dp(40)
+                on_release: root.shift_month(-1)
+            Label:
+                text: root.month_label
+                bold: True
+                color: 0.12, 0.14, 0.22, 1
+            Button:
+                text: ">"
+                size_hint_x: None
+                width: dp(40)
+                on_release: root.shift_month(1)
+        GridLayout:
+            id: day_grid
+            cols: 7
+            spacing: dp(4)
+            size_hint_y: None
+            row_default_height: dp(32)
+            row_force_default: True
+            height: self.minimum_height
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            spacing: dp(8)
+            Widget:
+            Button:
+                text: "Cancel"
+                size_hint_x: None
+                width: dp(120)
+                on_release: root.dismiss()
+
+<WorkoutLogModal>:
+    size_hint: 0.96, 0.9
+    auto_dismiss: False
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(8)
+        canvas.before:
+            Color:
+                rgba: 0.96, 0.99, 1, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [10,]
+        Label:
+            text: "Log a completed workout"
+            font_size: "18sp"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(24)
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+                GridLayout:
+                    cols: 2
+                    spacing: dp(8)
+                    row_default_height: dp(34)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    Label:
+                        text: "Workout date (YYYY-MM-DD)"
+                        color: 0.18, 0.18, 0.22, 1
+                    BoxLayout:
+                        spacing: dp(6)
+                        TextInput:
+                            id: workout_date_input
+                            multiline: False
+                            readonly: True
+                            hint_text: "pick date"
+                        Button:
+                            text: "Pick"
+                            size_hint_x: None
+                            width: dp(70)
+                            on_release: app.root.open_date_picker(workout_date_input)
+                    Label:
+                        text: "Duration (minutes)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: duration_input
+                        multiline: False
+                        input_filter: "int"
+                        hint_text: "e.g. 45"
+                    Label:
+                        text: "Goal (optional)"
+                        color: 0.18, 0.18, 0.22, 1
+                    Spinner:
+                        id: workout_goal_spinner
+                        text: app.root.workout_goal_spinner_text
+                        values: app.root.workout_goal_options
+                        on_text: app.root.workout_goal_spinner_text = self.text
+                    Label:
+                        text: "Total sets completed (optional)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: total_sets_input
+                        multiline: False
+                        input_filter: "int"
+                        hint_text: "e.g. 12"
+                    Label:
+                        text: "Exercises (comma or newline separated)"
+                        color: 0.18, 0.18, 0.22, 1
+                    TextInput:
+                        id: exercises_input
+                        multiline: True
+                        size_hint_y: None
+                        height: dp(80)
+                        hint_text: "Push-Up, Plank, Jump Rope"
+                    Label:
+                        text: "Filter exercises"
+                        color: 0.18, 0.18, 0.22, 1
+                    BoxLayout:
+                        spacing: dp(6)
+                        TextInput:
+                            id: history_exercise_filter_input
+                            multiline: False
+                            hint_text: "type to search"
+                            on_text: app.root.filter_history_exercise_options(self.text)
+                        Button:
+                            text: "Clear"
+                            size_hint_x: None
+                            width: dp(70)
+                            on_release: app.root.clear_history_exercise_filter()
+                    Label:
+                        text: "Add exercise from list"
+                        color: 0.18, 0.18, 0.22, 1
+                    BoxLayout:
+                        spacing: dp(6)
+                        Spinner:
+                            id: history_exercise_spinner
+                            text: app.root.history_exercise_spinner_text
+                            values: app.root.history_exercise_filtered_options
+                            on_text: app.root.history_exercise_spinner_text = self.text
+                        Button:
+                            text: "Add"
+                            size_hint_x: None
+                            width: dp(80)
+                            on_release: app.root.add_history_exercise_from_menu()
+        Label:
+            text: app.root.history_status_text
+            color: app.root.history_status_color
+            size_hint_y: None
+            height: dp(20)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(8)
+            Button:
+                text: "Save workout"
+                on_release: app.root.handle_add_workout()
+            Button:
+                text: "Cancel"
+                on_release: root.dismiss()
 
 <LiveScreen>:
     BoxLayout:
@@ -407,6 +592,64 @@ KV = """
             height: dp(26)
             text_size: self.width, None
             halign: "center"
+        BoxLayout:
+            orientation: "vertical"
+            padding: dp(12)
+            spacing: dp(8)
+            size_hint_y: None
+            height: self.minimum_height
+            canvas.before:
+                Color:
+                    rgba: 0.92, 0.97, 1, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10,]
+            Label:
+                text: "Your profile"
+                font_size: "17sp"
+                bold: True
+                color: 0.12, 0.14, 0.22, 1
+                size_hint_y: None
+                height: dp(22)
+            Label:
+                text: "Current user: {}".format(app.root.current_user_display)
+                color: 0.2, 0.2, 0.3, 1
+                size_hint_y: None
+                height: dp(18)
+            GridLayout:
+                cols: 2
+                spacing: dp(8)
+                row_default_height: dp(34)
+                size_hint_y: None
+                height: self.minimum_height
+                Label:
+                    text: "Display name"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    text: app.root.user_profile_name
+                    multiline: False
+                    hint_text: "What should we call you?"
+                    on_text: app.root.user_profile_name = self.text
+                Label:
+                    text: "Goal"
+                    color: 0.18, 0.18, 0.22, 1
+                Spinner:
+                    text: app.root.user_profile_goal
+                    values: app.root.user_goal_options
+                    on_text: app.root.user_profile_goal = self.text
+            BoxLayout:
+                size_hint_y: None
+                height: dp(36)
+                spacing: dp(8)
+                Button:
+                    text: "Save profile"
+                    on_release: app.root.save_user_profile()
+            Label:
+                text: app.root.user_profile_status_text
+                color: app.root.user_profile_status_color
+                size_hint_y: None
+                height: dp(18)
         AnchorLayout:
             anchor_y: "center"
             BoxLayout:
@@ -444,36 +687,26 @@ KV = """
                         background_color: 0.18, 0.4, 0.85, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_users()
-                AnchorLayout:
-                    anchor_x: "center"
+                BoxLayout:
                     size_hint_y: None
                     height: dp(70)
-                    BoxLayout:
-                        size_hint_y: None
-                        height: dp(70)
-                        size_hint_x: None
-                        width: self.minimum_width
-                        spacing: dp(12)
-                        Button:
-                            text: "History"
-                            font_size: "26sp"
-                            bold: True
-                            background_normal: ""
-                            background_color: 0.18, 0.4, 0.85, 1
-                            color: 1, 1, 1, 1
-                            size_hint_x: None
-                            width: dp(200)
-                            on_release: app.root.go_history()
-                        Button:
-                            text: "Recommend"
-                            font_size: "26sp"
-                            bold: True
-                            background_normal: ""
-                            background_color: 0.18, 0.4, 0.85, 1
-                            color: 1, 1, 1, 1
-                            size_hint_x: None
-                            width: dp(200)
-                            on_release: app.root.go_recommend()
+                    spacing: dp(12)
+                    Button:
+                        text: "History"
+                        font_size: "26sp"
+                        bold: True
+                        background_normal: ""
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
+                        on_release: app.root.go_history()
+                    Button:
+                        text: "Recommend"
+                        font_size: "26sp"
+                        bold: True
+                        background_normal: ""
+                        background_color: 0.18, 0.4, 0.85, 1
+                        color: 1, 1, 1, 1
+                        on_release: app.root.go_recommend()
 
 <BrowseScreen>:
     BoxLayout:
@@ -799,17 +1032,33 @@ KV = """
                 Label:
                     text: "Start date (YYYY-MM-DD)"
                     color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: start_date_input
-                    multiline: False
-                    hint_text: "optional"
+                BoxLayout:
+                    spacing: dp(6)
+                    TextInput:
+                        id: start_date_input
+                        multiline: False
+                        readonly: True
+                        hint_text: "optional"
+                    Button:
+                        text: "Pick"
+                        size_hint_x: None
+                        width: dp(70)
+                        on_release: app.root.open_date_picker(start_date_input)
                 Label:
                     text: "End date (YYYY-MM-DD)"
                     color: 0.18, 0.18, 0.22, 1
-                TextInput:
-                    id: end_date_input
-                    multiline: False
-                    hint_text: "optional"
+                BoxLayout:
+                    spacing: dp(6)
+                    TextInput:
+                        id: end_date_input
+                        multiline: False
+                        readonly: True
+                        hint_text: "optional"
+                    Button:
+                        text: "Pick"
+                        size_hint_x: None
+                        width: dp(70)
+                        on_release: app.root.open_date_picker(end_date_input)
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
@@ -849,54 +1098,10 @@ KV = """
                         size_hint_y: None
                         height: dp(18)
             Button:
-                text: "Log a completed workout" if not app.root.show_workout_form else "Hide workout form"
+                text: "Log a completed workout"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.root.toggle_workout_form()
-            BoxLayout:
-                orientation: "vertical"
-                spacing: dp(8)
-                size_hint_y: None
-                height: self.minimum_height if app.root.show_workout_form else 0
-                opacity: 1 if app.root.show_workout_form else 0
-                disabled: not app.root.show_workout_form
-                GridLayout:
-                    cols: 2
-                    spacing: dp(8)
-                    row_default_height: dp(34)
-                    size_hint_y: None
-                    height: self.minimum_height
-                    Label:
-                        text: "Workout date (YYYY-MM-DD)"
-                        color: 0.18, 0.18, 0.22, 1
-                    TextInput:
-                        id: workout_date_input
-                        multiline: False
-                        hint_text: "e.g. 2025-12-10"
-                    Label:
-                        text: "Duration (minutes)"
-                        color: 0.18, 0.18, 0.22, 1
-                    TextInput:
-                        id: duration_input
-                        multiline: False
-                        input_filter: "int"
-                        hint_text: "e.g. 45"
-                    Label:
-                        text: "Exercises (comma or newline separated)"
-                        color: 0.18, 0.18, 0.22, 1
-                    TextInput:
-                        id: exercises_input
-                        multiline: True
-                        size_hint_y: None
-                        height: dp(80)
-                        hint_text: "Push-Up, Plank, Jump Rope"
-                BoxLayout:
-                    size_hint_y: None
-                    height: dp(40)
-                    spacing: dp(8)
-                    Button:
-                        text: "Save workout"
-                        on_release: app.root.handle_add_workout()
+                on_release: app.root.open_workout_log_modal()
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
@@ -1261,7 +1466,65 @@ class RecommendationCard(BoxLayout):
     estimated_minutes = StringProperty()
     score_display = StringProperty()
     recommendation = StringProperty()
-    show_details = StringProperty("0")
+    show_details = BooleanProperty(False)
+
+
+class DatePickerPopup(ModalView):
+    month_label = StringProperty("")
+
+    def __init__(self, *, on_select, initial_date: Optional[date] = None, **kwargs):
+        super().__init__(**kwargs)
+        self._on_select = on_select
+        chosen = initial_date or date.today()
+        self._shown_year = chosen.year
+        self._shown_month = chosen.month
+        self.month_label = chosen.strftime("%B %Y")
+        Clock.schedule_once(self._populate_calendar, 0)
+
+    def shift_month(self, delta: int) -> None:
+        month = self._shown_month + delta
+        year = self._shown_year
+        if month < 1:
+            month = 12
+            year -= 1
+        elif month > 12:
+            month = 1
+            year += 1
+        self._shown_month = month
+        self._shown_year = year
+        self.month_label = date(year, month, 1).strftime("%B %Y")
+        self._populate_calendar()
+
+    def _select_day(self, day: int, *_: Any) -> None:
+        selected = date(self._shown_year, self._shown_month, day)
+        if self._on_select:
+            self._on_select(selected)
+        self.dismiss()
+
+    def _populate_calendar(self, *_: Any) -> None:
+        if not self.ids:
+            return
+        grid = self.ids.day_grid
+        grid.clear_widgets()
+        for weekday in ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"):
+            grid.add_widget(
+                Label(
+                    text=weekday,
+                    bold=True,
+                    color=(0.15, 0.18, 0.25, 1),
+                )
+            )
+        month_days = calendar.Calendar(firstweekday=0).monthdayscalendar(self._shown_year, self._shown_month)
+        for week in month_days:
+            for day in week:
+                if day == 0:
+                    grid.add_widget(Label(text=""))
+                else:
+                    grid.add_widget(Button(text=str(day), on_release=partial(self._select_day, day)))
+
+
+class WorkoutLogModal(ModalView):
+    pass
 
 
 class RootWidget(BoxLayout):
@@ -1272,6 +1535,10 @@ class RootWidget(BoxLayout):
     muscle_options = ListProperty()
     equipment_options = ListProperty()
     user_options = ListProperty()
+    user_goal_options = ListProperty()
+    history_exercise_options = ListProperty()
+    history_exercise_filtered_options = ListProperty()
+    workout_goal_options = ListProperty()
 
     goal_spinner_text = StringProperty("All goals")
     muscle_spinner_text = StringProperty("All muscle groups")
@@ -1280,6 +1547,9 @@ class RootWidget(BoxLayout):
     add_muscle_spinner_text = StringProperty("")
     add_equipment_spinner_text = StringProperty("")
     rating_spinner_text = StringProperty("5")
+    history_exercise_spinner_text = StringProperty("Select exercise")
+    workout_goal_spinner_text = StringProperty("No goal")
+    history_exercise_filter = StringProperty("")
 
     filter_goal = StringProperty("All")
     filter_muscle_group = StringProperty("All")
@@ -1292,9 +1562,12 @@ class RootWidget(BoxLayout):
     current_user_display = StringProperty("No user selected")
     user_status_text = StringProperty("")
     user_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    user_profile_name = StringProperty("")
+    user_profile_goal = StringProperty("No goal")
+    user_profile_status_text = StringProperty("")
+    user_profile_status_color = ListProperty((0.14, 0.4, 0.2, 1))
     history_status_text = StringProperty("")
     history_status_color = ListProperty((0.14, 0.4, 0.2, 1))
-    show_workout_form = BooleanProperty(False)
     stats_total_workouts = StringProperty("0")
     stats_total_minutes = StringProperty("0")
     stats_top_exercise = StringProperty("—")
@@ -1344,6 +1617,8 @@ class RootWidget(BoxLayout):
         self.history_start: Optional[str] = None
         self.history_end: Optional[str] = None
         self._goal_label_map = {self._pretty_goal(goal): goal for goal in exercise_database.GOALS}
+        self._goal_code_label_map = {goal: self._pretty_goal(goal) for goal in exercise_database.GOALS}
+        self._workout_log_modal: Optional[WorkoutLogModal] = None
         self._live_clock = None
         self._live_current_index = 0
         self._live_current_set = 1
@@ -1365,15 +1640,25 @@ class RootWidget(BoxLayout):
     def _pretty_goal(self, goal: str) -> str:
         return goal.replace("_", " ").title()
 
+    def _normalize_muscle_group(self, muscle_group: str) -> str:
+        replacements = {
+            "Chest, shoulders, triceps": "Chest",
+        }
+        cleaned = muscle_group.strip()
+        return replacements.get(cleaned, cleaned)
+
     def _preferred_goal_label(self) -> str:
         """
         Pick a default goal label for forms:
         - Current recommendation goal if chosen
+        - Else user's saved goal (if available)
         - Else "Muscle Building" (most common)
         - Else first available goal.
         """
         if self.rec_goal_spinner_text:
             return self.rec_goal_spinner_text
+        if self.user_profile_goal and self.user_profile_goal in self.goal_choice_options:
+            return self.user_profile_goal
         muscle_label = self._pretty_goal("muscle_building")
         if muscle_label in self.goal_choice_options:
             return muscle_label
@@ -1416,6 +1701,7 @@ class RootWidget(BoxLayout):
         ) in rows:
             if not name or not description:
                 continue
+            muscle_group = self._normalize_muscle_group(muscle_group)
             recommendation_parts = []
             if sets is not None and reps is not None:
                 recommendation_parts.append(f"{sets} sets x {reps} reps")
@@ -1457,18 +1743,10 @@ class RootWidget(BoxLayout):
 
         self.equipment_choice_options = equipment_choices if equipment_choices else ["Bodyweight"]
         self.equipment_choice_display = ", ".join(self.equipment_choice_options) if self.equipment_choice_options else ""
-        if not self.add_equipment_spinner_text:
-            if "Bodyweight" in self.equipment_choice_options:
-                self.add_equipment_spinner_text = "Bodyweight"
-            elif self.equipment_choice_options:
-                self.add_equipment_spinner_text = self.equipment_choice_options[0]
-        elif self.add_equipment_spinner_text not in self.equipment_choice_options:
-            if "Bodyweight" in self.equipment_choice_options:
-                self.add_equipment_spinner_text = "Bodyweight"
-            else:
-                self.add_equipment_spinner_text = self.equipment_choice_options[0]
+        self.add_equipment_spinner_text = self._resolve_equipment_choice(self.add_equipment_spinner_text)
 
         self.goal_options = ["All goals"] + self.goal_choice_options
+        self.user_goal_options = ["No goal"] + self.goal_choice_options
         muscle_options = ["All muscle groups"] + muscle_choices
         equipment_options = ["All equipment"] + equipment_choices
         if self.muscle_spinner_text not in muscle_options:
@@ -1481,6 +1759,47 @@ class RootWidget(BoxLayout):
         self.equipment_options = equipment_options
         if self.goal_choice_options and self.add_goal_spinner_text not in self.goal_choice_options:
             self.add_goal_spinner_text = self._preferred_goal_label()
+        if self.user_profile_goal not in self.user_goal_options:
+            self.user_profile_goal = "No goal"
+        self.history_exercise_options = sorted({r["name"] for r in self.records})
+        self._refresh_history_exercise_filtered_options()
+        self.workout_goal_options = ["No goal"] + self.goal_choice_options
+        if self.workout_goal_spinner_text not in self.workout_goal_options:
+            self.workout_goal_spinner_text = "No goal"
+
+    def _refresh_history_exercise_filtered_options(self) -> None:
+        query = self.history_exercise_filter.strip().lower()
+        if query:
+            filtered = [name for name in self.history_exercise_options if query in name.lower()]
+        else:
+            filtered = list(self.history_exercise_options)
+        self.history_exercise_filtered_options = filtered
+        if filtered:
+            if self.history_exercise_spinner_text not in filtered:
+                self.history_exercise_spinner_text = "Select exercise"
+        else:
+            self.history_exercise_spinner_text = "No matches" if self.history_exercise_options else "No exercises"
+
+    def filter_history_exercise_options(self, query: str) -> None:
+        self.history_exercise_filter = query
+        self._refresh_history_exercise_filtered_options()
+
+    def clear_history_exercise_filter(self) -> None:
+        ids = self._workout_form_ids()
+        if ids and "history_exercise_filter_input" in ids:
+            ids.history_exercise_filter_input.text = ""
+        else:
+            self.history_exercise_filter = ""
+            self._refresh_history_exercise_filtered_options()
+
+    def _resolve_equipment_choice(self, current: str) -> str:
+        if current and current in self.equipment_choice_options:
+            return current
+        if "Bodyweight" in self.equipment_choice_options:
+            return "Bodyweight"
+        if self.equipment_choice_options:
+            return self.equipment_choice_options[0]
+        return "Bodyweight"
 
     def _browse_screen(self) -> BrowseScreen:
         return self.ids.screen_manager.get_screen("browse")
@@ -1497,13 +1816,21 @@ class RootWidget(BoxLayout):
     def _recommend_screen(self) -> RecommendationScreen:
         return self.ids.screen_manager.get_screen("recommend")
 
+    def _workout_form_ids(self) -> Optional[Any]:
+        if self._workout_log_modal is not None:
+            return self._workout_log_modal.ids
+        try:
+            ids = self._history_screen().ids
+        except Exception:
+            return None
+        return ids if "workout_date_input" in ids else None
+
     def _prefill_workout_date(self) -> None:
         """Populate the workout date field with today's date if available."""
-        try:
-            history_screen = self._history_screen()
-        except Exception:
+        ids = self._workout_form_ids()
+        if not ids:
             return
-        date_field = history_screen.ids.get("workout_date_input")
+        date_field = ids.get("workout_date_input")
         if date_field and not date_field.text:
             date_field.text = date.today().isoformat()
 
@@ -1524,29 +1851,60 @@ class RootWidget(BoxLayout):
 
     def apply_filters(self) -> None:
         filtered: list[dict[str, str]] = []
-        for record in self.records:
-            if not record.get("name") or not record.get("description"):
-                continue
-            if self.filter_goal != "All" and record["goal"] != self.filter_goal:
-                continue
-            if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
-                continue
-            if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
-                continue
-            suitability_display = record["suitability_display"]
-            if self.filter_goal == "All":
+        goal_priority = {goal: idx for idx, goal in enumerate(exercise_database.GOALS)}
+        if self.filter_goal == "All":
+            grouped: dict[str, dict[str, Any]] = {}
+            for record in self.records:
+                if not record.get("name") or not record.get("description"):
+                    continue
+                if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
+                    continue
+                if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
+                    continue
+                existing = grouped.get(record["name"])
+                if not existing:
+                    grouped[record["name"]] = record
+                    continue
+                if record["rating"] > existing["rating"]:
+                    grouped[record["name"]] = record
+                elif record["rating"] == existing["rating"]:
+                    if goal_priority.get(record["goal"], 0) < goal_priority.get(existing["goal"], 0):
+                        grouped[record["name"]] = record
+            for record in sorted(grouped.values(), key=lambda r: r["name"]):
                 suitability_display = f'{record["goal_label"]} ({record["suitability_display"]})'
-            filtered.append(
-                {
-                    "name": record["name"],
-                    "description": record["description"],
-                    "goal_label": record["goal_label"],
-                    "muscle_group": record["muscle_group"],
-                    "equipment": record["equipment"],
-                    "suitability_display": suitability_display,
-                    "recommendation": record["recommendation"],
-                }
-            )
+                filtered.append(
+                    {
+                        "name": record["name"],
+                        "description": record["description"],
+                        "goal_label": record["goal_label"],
+                        "muscle_group": record["muscle_group"],
+                        "equipment": record["equipment"],
+                        "suitability_display": suitability_display,
+                        "recommendation": record["recommendation"],
+                    }
+                )
+        else:
+            for record in self.records:
+                if not record.get("name") or not record.get("description"):
+                    continue
+                if record["goal"] != self.filter_goal:
+                    continue
+                if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
+                    continue
+                if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
+                    continue
+                suitability_display = record["suitability_display"]
+                filtered.append(
+                    {
+                        "name": record["name"],
+                        "description": record["description"],
+                        "goal_label": record["goal_label"],
+                        "muscle_group": record["muscle_group"],
+                        "equipment": record["equipment"],
+                        "suitability_display": suitability_display,
+                        "recommendation": record["recommendation"],
+                    }
+                )
         exercise_list = self._browse_screen().ids.exercise_list
         # Clear first to avoid stale/blank items from previous data set.
         exercise_list.data = []
@@ -1557,7 +1915,15 @@ class RootWidget(BoxLayout):
     def _load_users(self) -> None:
         with exercise_database.get_connection() as conn:
             rows = exercise_database.fetch_users(conn)
-        self._users = [{"id": user_id, "username": username} for user_id, username in rows]
+        self._users = [
+            {
+                "id": user_id,
+                "username": username,
+                "display_name": display_name or username,
+                "preferred_goal": preferred_goal,
+            }
+            for user_id, username, display_name, preferred_goal in rows
+        ]
         self.user_options = [u["username"] for u in self._users]
 
         if self.current_user_id and not any(u["id"] == self.current_user_id for u in self._users):
@@ -1566,17 +1932,29 @@ class RootWidget(BoxLayout):
         if self.current_user_id:
             current = next((u for u in self._users if u["id"] == self.current_user_id), None)
             if current:
-                self.current_user_display = current["username"]
+                self.current_user_display = current["display_name"]
                 self.user_spinner_text = current["username"]
+                self.user_profile_name = current["display_name"]
+                preferred_goal = current.get("preferred_goal")
+                if preferred_goal:
+                    self.user_profile_goal = self._goal_code_label_map.get(preferred_goal, "No goal")
+                else:
+                    self.user_profile_goal = "No goal"
         if not self.current_user_id:
             self.current_user_display = "No user selected"
             self.user_spinner_text = "Select user"
+            self.user_profile_name = ""
+            self.user_profile_goal = "No goal"
 
         self._load_history()
 
     def _set_user_status(self, message: str, *, error: bool = False) -> None:
         self.user_status_text = message
         self.user_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def _set_user_profile_status(self, message: str, *, error: bool = False) -> None:
+        self.user_profile_status_text = message
+        self.user_profile_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
 
     def _require_user(self) -> bool:
         if not self.current_user_id:
@@ -1612,16 +1990,51 @@ class RootWidget(BoxLayout):
         self.current_user_display = username
         self.user_spinner_text = username
         self._set_user_status(f"User '{username}' registered.")
+        self.user_profile_name = username
+        self.user_profile_goal = "No goal"
         self._load_users()
         self.go_home()
+
+    def save_user_profile(self) -> None:
+        if not self.current_user_id:
+            self._set_user_profile_status("Select a user to update the profile.", error=True)
+            return
+        display_name = self.user_profile_name.strip()
+        if not display_name:
+            self._set_user_profile_status("Display name cannot be empty.", error=True)
+            return
+        preferred_goal = None
+        if self.user_profile_goal and self.user_profile_goal != "No goal":
+            preferred_goal = self._goal_label_map.get(self.user_profile_goal)
+            if not preferred_goal:
+                self._set_user_profile_status("Select a valid goal option.", error=True)
+                return
+        try:
+            exercise_database.update_user_profile(
+                user_id=self.current_user_id,
+                display_name=display_name,
+                preferred_goal=preferred_goal,
+            )
+        except sqlite3.DatabaseError as exc:
+            self._set_user_profile_status(f"Database error: {exc}", error=True)
+            return
+        self.current_user_display = display_name
+        self._load_users()
+        self._set_user_profile_status("Profile saved.")
 
     def on_user_selected(self, username: str) -> None:
         selected = next((u for u in self._users if u["username"] == username), None)
         if not selected:
             return
         self.current_user_id = selected["id"]
-        self.current_user_display = selected["username"]
+        self.current_user_display = selected.get("display_name") or selected["username"]
         self.user_spinner_text = selected["username"]
+        self.user_profile_name = selected.get("display_name") or selected["username"]
+        preferred_goal = selected.get("preferred_goal")
+        if preferred_goal:
+            self.user_profile_goal = self._goal_code_label_map.get(preferred_goal, "No goal")
+        else:
+            self.user_profile_goal = "No goal"
         self._set_user_status(f"User '{username}' selected.")
         self._load_history()
         self.go_home()
@@ -1629,6 +2042,18 @@ class RootWidget(BoxLayout):
     def _split_exercises(self, raw: str) -> list[str]:
         normalized = raw.replace("\n", ",")
         return [part.strip() for part in normalized.split(",") if part.strip()]
+
+    def _known_exercise_names(self) -> set[str]:
+        return {record["name"].strip().lower() for record in self.records if record.get("name")}
+
+    def _validate_history_exercises(self, exercises: list[str]) -> Optional[str]:
+        known = self._known_exercise_names()
+        if not known:
+            return None
+        unknown = [name for name in exercises if name.strip().lower() not in known]
+        if unknown:
+            return f"Unknown exercises: {', '.join(unknown)}"
+        return None
 
     def _parse_date_value(self, value: str, *, allow_empty: bool = False) -> Optional[str]:
         value = value.strip()
@@ -1642,12 +2067,81 @@ class RootWidget(BoxLayout):
             raise ValueError("Use YYYY-MM-DD format.")
         return parsed.isoformat()
 
+    def open_date_picker(self, target_input: Any) -> None:
+        if not target_input:
+            return
+        text_value = getattr(target_input, "text", "").strip()
+        initial = None
+        if text_value:
+            try:
+                initial = date.fromisoformat(text_value)
+            except ValueError:
+                initial = None
+        DatePickerPopup(
+            initial_date=initial,
+            on_select=lambda selected: self._set_date_input(target_input, selected),
+        ).open()
+
+    def _set_date_input(self, target_input: Any, selected: date) -> None:
+        if target_input:
+            target_input.text = selected.isoformat()
+
     def _set_history_status(self, message: str, *, error: bool = False) -> None:
         self.history_status_text = message
         self.history_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
 
-    def toggle_workout_form(self) -> None:
-        self.show_workout_form = not self.show_workout_form
+    def _clear_workout_log_modal(self, *_: Any) -> None:
+        self._workout_log_modal = None
+
+    def open_workout_log_modal(self) -> None:
+        if not self._require_user():
+            return
+        if self._workout_log_modal is not None:
+            try:
+                self._workout_log_modal.dismiss()
+            except Exception:
+                pass
+        modal = WorkoutLogModal()
+        modal.bind(on_dismiss=self._clear_workout_log_modal)
+        self._workout_log_modal = modal
+        self.history_exercise_spinner_text = "Select exercise"
+        self.history_exercise_filter = ""
+        self._refresh_history_exercise_filtered_options()
+        ids = self._workout_form_ids()
+        if ids and "history_exercise_filter_input" in ids:
+            ids.history_exercise_filter_input.text = ""
+        if self.user_profile_goal and self.user_profile_goal in self.goal_choice_options:
+            self.workout_goal_spinner_text = self.user_profile_goal
+        self._set_history_status("")
+        modal.open()
+        self._prefill_workout_date()
+
+    def _dismiss_workout_log_modal(self) -> None:
+        if self._workout_log_modal is None:
+            return
+        try:
+            self._workout_log_modal.dismiss()
+        except Exception:
+            pass
+
+    def add_history_exercise_from_menu(self) -> None:
+        ids = self._workout_form_ids()
+        if not ids:
+            return
+        selected = ids.history_exercise_spinner.text.strip()
+        if not selected or selected in {"Select exercise", "No matches", "No exercises"}:
+            return
+        existing = self._split_exercises(ids.exercises_input.text)
+        existing_lower = {name.lower() for name in existing}
+        if selected.lower() in existing_lower:
+            self._set_history_status(f"{selected} is already listed.")
+            return
+        if ids.exercises_input.text.strip():
+            ids.exercises_input.text = ids.exercises_input.text.rstrip() + "\n" + selected
+        else:
+            ids.exercises_input.text = selected
+        self._set_history_status(f"Added {selected}.")
+        self.history_exercise_spinner_text = "Select exercise"
 
     def _load_history(self, *_: Any) -> None:
         try:
@@ -1687,10 +2181,10 @@ class RootWidget(BoxLayout):
             sets_display = str(entry.get("total_sets_completed") or 0)
             duration_minutes = entry.get("duration_minutes") or 0
             duration_seconds = entry.get("duration_seconds")
-            if duration_seconds:
+            if duration_seconds is not None:
                 duration_display = f"{duration_minutes} min ({duration_seconds}s)"
             else:
-                duration_display = str(duration_minutes)
+                duration_display = f"{duration_minutes} min"
             data.append(
                 {
                     "date_display": entry["performed_at"],
@@ -1732,7 +2226,10 @@ class RootWidget(BoxLayout):
             self._set_history_status("Select or register a user first.", error=True)
             return
 
-        ids = self._history_screen().ids
+        ids = self._workout_form_ids()
+        if not ids:
+            self._set_history_status("Open the workout form to log a session.", error=True)
+            return
         try:
             workout_date = self._parse_date_value(ids.workout_date_input.text, allow_empty=False)
         except ValueError as exc:
@@ -1752,6 +2249,26 @@ class RootWidget(BoxLayout):
         if not exercises:
             self._set_history_status("Add at least one exercise.", error=True)
             return
+        validation_error = self._validate_history_exercises(exercises)
+        if validation_error:
+            self._set_history_status(validation_error, error=True)
+            return
+
+        goal_label = ids.workout_goal_spinner.text.strip()
+        goal = None
+        if goal_label and goal_label != "No goal":
+            goal = goal_label
+
+        sets_raw = ids.total_sets_input.text.strip()
+        total_sets_completed = None
+        if sets_raw:
+            try:
+                total_sets_completed = int(sets_raw)
+                if total_sets_completed < 0:
+                    raise ValueError
+            except ValueError:
+                self._set_history_status("Total sets must be 0 or greater.", error=True)
+                return
 
         try:
             exercise_database.log_workout(
@@ -1759,6 +2276,8 @@ class RootWidget(BoxLayout):
                 performed_at=workout_date,
                 duration_minutes=duration_minutes,
                 exercises=exercises,
+                goal=goal,
+                total_sets_completed=total_sets_completed,
             )
         except (ValueError, sqlite3.DatabaseError) as exc:
             self._set_history_status(str(exc), error=True)
@@ -1767,8 +2286,12 @@ class RootWidget(BoxLayout):
         self._set_history_status("Workout saved.")
         ids.duration_input.text = ""
         ids.exercises_input.text = ""
+        ids.total_sets_input.text = ""
+        self.workout_goal_spinner_text = "No goal"
+        self.history_exercise_spinner_text = "Select exercise"
         self._prefill_workout_date()
         self._load_history()
+        self._dismiss_workout_log_modal()
 
     def _load_stats(self, *, clear: bool = False) -> None:
         if clear or not self.current_user_id:
@@ -1799,6 +2322,14 @@ class RootWidget(BoxLayout):
     def _set_rec_status(self, message: str, *, error: bool = False) -> None:
         self.rec_status_text = message
         self.rec_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def _plan_goal_label(self) -> str:
+        labels = {item.get("goal_label") for item in self.rec_plan if item.get("goal_label")}
+        if not labels:
+            return ""
+        if len(labels) == 1:
+            return labels.pop()
+        return "Multiple goals"
 
     def _estimate_minutes(self, record: dict[str, Any]) -> int:
         """
@@ -1906,6 +2437,7 @@ class RootWidget(BoxLayout):
                     "description": record["description"],
                     "muscle_group": record["muscle_group"],
                     "equipment": record["equipment"],
+                    "goal_label": record["goal_label"],
                     "suitability": record["suitability_display"],
                     "recommendation": record["recommendation"],
                     "sets": record.get("sets"),
@@ -1914,6 +2446,7 @@ class RootWidget(BoxLayout):
                     "estimated_minutes": str(est_minutes),
                     "score": score,
                     "score_display": str(score),
+                    "show_details": False,
                 }
             )
 
@@ -1921,8 +2454,10 @@ class RootWidget(BoxLayout):
         self.rec_recommendations = recommendations
         self._recommend_screen().ids.rec_list.data = recommendations
         self._set_rec_status(f"{len(recommendations)} exercises recommended.")
-        # Reset plan if goal changes
-        self._reset_plan(silent=True)
+        # Reset plan only if the selected goal conflicts with the existing plan.
+        plan_goal = self._plan_goal_label()
+        if plan_goal and plan_goal != "Multiple goals" and plan_goal != self.rec_goal_spinner_text:
+            self._reset_plan(silent=True)
 
     def _find_recommendation(self, name: str) -> Optional[dict[str, Any]]:
         return next((rec for rec in self.rec_recommendations if rec["name"] == name), None)
@@ -1932,12 +2467,12 @@ class RootWidget(BoxLayout):
         if not rec:
             return
         # flip detail visibility for this item
-        current = rec.get("show_details") == "1"
+        current = bool(rec.get("show_details"))
         for r in self.rec_recommendations:
             if r["name"] == name:
-                r["show_details"] = "0" if current else "1"
+                r["show_details"] = not current
             else:
-                r["show_details"] = r.get("show_details", "0")
+                r["show_details"] = bool(r.get("show_details", False))
         self._recommend_screen().ids.rec_list.data = self.rec_recommendations
         self._set_rec_status("Details toggled.")
 
@@ -1953,6 +2488,7 @@ class RootWidget(BoxLayout):
             "icon": rec.get("icon", ""),
             "muscle_group": rec.get("muscle_group", ""),
             "equipment": rec.get("equipment", ""),
+            "goal_label": rec.get("goal_label", ""),
             "sets": rec.get("sets"),
             "reps": rec.get("reps"),
             "time_seconds": rec.get("time_seconds"),
@@ -2012,6 +2548,7 @@ class RootWidget(BoxLayout):
                         "muscle_group": match["muscle_group"],
                         "equipment": match["equipment"],
                         "icon": match.get("icon", ""),
+                        "goal_label": match["goal_label"],
                         "suitability": match["suitability_display"],
                         "recommendation": match["recommendation"],
                         "sets": match.get("sets"),
@@ -2020,7 +2557,7 @@ class RootWidget(BoxLayout):
                         "estimated_minutes": str(est_minutes),
                         "score": score,
                         "score_display": str(score),
-                        "show_details": "0",
+                        "show_details": False,
                     }
                 )
                 self.rec_recommendations.sort(key=lambda r: (-r["score"], r["name"]))
@@ -2135,8 +2672,7 @@ class RootWidget(BoxLayout):
             self.add_goal_spinner_text = self.goal_choice_options[0]
         if self.muscle_choice_options:
             self.add_muscle_spinner_text = self.muscle_choice_options[0]
-        if self.equipment_choice_options:
-            self.add_equipment_spinner_text = self.equipment_choice_options[0]
+        self.add_equipment_spinner_text = self._resolve_equipment_choice("")
         self.rating_spinner_text = "5"
 
     def handle_add_exercise(self) -> None:
