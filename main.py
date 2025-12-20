@@ -977,16 +977,28 @@ KV = """
                     values: app.root.goal_options
                     on_text: app.root.on_goal_change(self.text)
                     size_hint_x: 1
+                    background_normal: ""
+                    background_down: ""
+                    background_color: app.root.filter_goal_color
+                    color: app.root.filter_goal_text_color
                 Spinner:
                     id: muscle_spinner
                     text: app.root.muscle_spinner_text
                     values: app.root.muscle_options
                     on_text: app.root.on_muscle_change(self.text)
+                    background_normal: ""
+                    background_down: ""
+                    background_color: app.root.filter_muscle_color
+                    color: app.root.filter_muscle_text_color
                 Spinner:
                     id: equipment_spinner
                     text: app.root.equipment_spinner_text
                     values: app.root.equipment_options
                     on_text: app.root.on_equipment_change(self.text)
+                    background_normal: ""
+                    background_down: ""
+                    background_color: app.root.filter_equipment_color
+                    color: app.root.filter_equipment_text_color
         RecycleView:
             id: exercise_list
             viewclass: "ExerciseCard"
@@ -1212,28 +1224,92 @@ KV = """
                 size_hint_y: None
                 height: self.minimum_height
                 Label:
-                    text: "Create a new user"
+                    text: "New here?"
                     font_size: "17sp"
                     bold: True
                     color: 0.12, 0.14, 0.22, 1
                     size_hint_y: None
                     height: dp(24)
-                BoxLayout:
+                WrapLabel:
+                    text: "Create a profile with a username and goal."
+                    color: 0.2, 0.2, 0.3, 1
+                    text_size: self.width, None
+                    halign: "center"
+                AnchorLayout:
+                    anchor_x: "center"
                     size_hint_y: None
-                    height: dp(44)
-                    spacing: dp(8)
-                    TextInput:
-                        id: username_input
-                        hint_text: "New username"
-                        multiline: False
+                    height: dp(40)
                     Button:
                         text: "Register"
                         size_hint_x: None
-                        width: dp(120)
-                        on_release: app.root.handle_register_user()
+                        width: dp(160)
+                        on_release: app.root.go_register()
                 WrapLabel:
                     text: app.root.user_status_text
                     color: app.root.user_status_color
+
+<RegisterScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(10)
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Label:
+            text: "Register new user"
+            font_size: "18sp"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(26)
+        WrapLabel:
+            text: "Set a username and choose a goal to get started."
+            color: 0.2, 0.2, 0.3, 1
+        GridLayout:
+            cols: 2
+            spacing: dp(8)
+            row_default_height: dp(34)
+            size_hint_y: None
+            height: self.minimum_height
+            WrapLabel:
+                text: "Username"
+                color: 0.18, 0.18, 0.22, 1
+            TextInput:
+                id: register_username_input
+                hint_text: "e.g. alex"
+                multiline: False
+            WrapLabel:
+                text: "Display name (optional)"
+                color: 0.18, 0.18, 0.22, 1
+            TextInput:
+                id: register_display_input
+                hint_text: "Name shown in app"
+                multiline: False
+            WrapLabel:
+                text: "Goal"
+                color: 0.18, 0.18, 0.22, 1
+            Spinner:
+                id: register_goal_spinner
+                text: app.root.register_goal_spinner_text
+                values: app.root.user_goal_options
+                on_text: app.root.register_goal_spinner_text = self.text
+        WrapLabel:
+            text: app.root.register_status_text
+            color: app.root.register_status_color
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(8)
+            Button:
+                text: "Register"
+                on_release: app.root.handle_register_user()
+            Button:
+                text: "Cancel"
+                on_release: app.root.go_users()
 
 <HistoryScreen>:
     ScrollView:
@@ -1620,6 +1696,8 @@ KV = """
             name: "add"
         UserScreen:
             name: "user"
+        RegisterScreen:
+            name: "register"
         HistoryScreen:
             name: "history"
         RecommendationScreen:
@@ -1654,6 +1732,10 @@ class AddScreen(Screen):
 
 
 class UserScreen(Screen):
+    pass
+
+
+class RegisterScreen(Screen):
     pass
 
 
@@ -1853,6 +1935,12 @@ class RootWidget(BoxLayout):
     goal_spinner_text = StringProperty("All goals")
     muscle_spinner_text = StringProperty("All muscle groups")
     equipment_spinner_text = StringProperty("All equipment")
+    filter_goal_color = ListProperty((0.93, 0.95, 0.98, 1))
+    filter_goal_text_color = ListProperty((0.2, 0.2, 0.25, 1))
+    filter_muscle_color = ListProperty((0.93, 0.95, 0.98, 1))
+    filter_muscle_text_color = ListProperty((0.2, 0.2, 0.25, 1))
+    filter_equipment_color = ListProperty((0.93, 0.95, 0.98, 1))
+    filter_equipment_text_color = ListProperty((0.2, 0.2, 0.25, 1))
     add_goal_spinner_text = StringProperty("")
     add_muscle_spinner_text = StringProperty("")
     add_equipment_spinner_text = StringProperty("")
@@ -1872,6 +1960,9 @@ class RootWidget(BoxLayout):
     current_user_display = StringProperty("No user selected")
     user_status_text = StringProperty("")
     user_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    register_goal_spinner_text = StringProperty("No goal")
+    register_status_text = StringProperty("")
+    register_status_color = ListProperty((0.14, 0.4, 0.2, 1))
     user_profile_name = StringProperty("")
     user_profile_goal = StringProperty("No goal")
     user_profile_status_text = StringProperty("")
@@ -2078,6 +2169,51 @@ class RootWidget(BoxLayout):
         self.workout_goal_options = ["No goal"] + self.goal_choice_options
         if self.workout_goal_spinner_text not in self.workout_goal_options:
             self.workout_goal_spinner_text = "No goal"
+        if self.register_goal_spinner_text not in self.user_goal_options:
+            self.register_goal_spinner_text = "No goal"
+        self._update_filter_colors()
+
+    def _resolve_filter_colors(
+        self,
+        value: str,
+        default_value: str,
+        active_color: tuple[float, float, float, float],
+        inactive_color: tuple[float, float, float, float],
+        inactive_text: tuple[float, float, float, float],
+        active_text: tuple[float, float, float, float],
+    ) -> tuple[tuple[float, float, float, float], tuple[float, float, float, float]]:
+        if value and value != default_value:
+            return active_color, active_text
+        return inactive_color, inactive_text
+
+    def _update_filter_colors(self) -> None:
+        inactive_color = (0.93, 0.95, 0.98, 1)
+        inactive_text = (0.2, 0.2, 0.25, 1)
+        active_text = (1, 1, 1, 1)
+        self.filter_goal_color, self.filter_goal_text_color = self._resolve_filter_colors(
+            self.goal_spinner_text,
+            "All goals",
+            (0.18, 0.5, 0.85, 1),
+            inactive_color,
+            inactive_text,
+            active_text,
+        )
+        self.filter_muscle_color, self.filter_muscle_text_color = self._resolve_filter_colors(
+            self.muscle_spinner_text,
+            "All muscle groups",
+            (0.2, 0.65, 0.38, 1),
+            inactive_color,
+            inactive_text,
+            active_text,
+        )
+        self.filter_equipment_color, self.filter_equipment_text_color = self._resolve_filter_colors(
+            self.equipment_spinner_text,
+            "All equipment",
+            (0.9, 0.55, 0.2, 1),
+            inactive_color,
+            inactive_text,
+            active_text,
+        )
 
     def _refresh_history_exercise_filtered_options(self) -> None:
         query = self.history_exercise_filter.strip().lower()
@@ -2122,6 +2258,9 @@ class RootWidget(BoxLayout):
     def _user_screen(self) -> UserScreen:
         return self.ids.screen_manager.get_screen("user")
 
+    def _register_screen(self) -> RegisterScreen:
+        return self.ids.screen_manager.get_screen("register")
+
     def _history_screen(self) -> HistoryScreen:
         return self.ids.screen_manager.get_screen("history")
 
@@ -2149,16 +2288,19 @@ class RootWidget(BoxLayout):
     def on_goal_change(self, value: str) -> None:
         self.filter_goal = "All" if value == "All goals" else self._goal_label_map.get(value, "All")
         self.goal_spinner_text = value
+        self._update_filter_colors()
         self.apply_filters()
 
     def on_muscle_change(self, value: str) -> None:
         self.filter_muscle_group = "All" if value == "All muscle groups" else value
         self.muscle_spinner_text = value
+        self._update_filter_colors()
         self.apply_filters()
 
     def on_equipment_change(self, value: str) -> None:
         self.filter_equipment = "All" if value == "All equipment" else value
         self.equipment_spinner_text = value
+        self._update_filter_colors()
         self.apply_filters()
 
     def apply_filters(self) -> None:
@@ -2241,6 +2383,14 @@ class RootWidget(BoxLayout):
         if self.current_user_id and not any(u["id"] == self.current_user_id for u in self._users):
             self.current_user_id = None
 
+        if not self.current_user_id:
+            example_user = next(
+                (u for u in self._users if u["username"] == exercise_database.EXAMPLE_USERNAME),
+                None,
+            )
+            if example_user:
+                self.current_user_id = example_user["id"]
+
         if self.current_user_id:
             current = next((u for u in self._users if u["id"] == self.current_user_id), None)
             if current:
@@ -2264,6 +2414,10 @@ class RootWidget(BoxLayout):
         self.user_status_text = message
         self.user_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
 
+    def _set_register_status(self, message: str, *, error: bool = False) -> None:
+        self.register_status_text = message
+        self.register_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
     def _set_user_profile_status(self, message: str, *, error: bool = False) -> None:
         self.user_profile_status_text = message
         self.user_profile_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
@@ -2279,34 +2433,48 @@ class RootWidget(BoxLayout):
         return True
 
     def handle_register_user(self) -> None:
-        ids = self._user_screen().ids
-        username = ids.username_input.text.strip()
-        if not username:
-            self._set_user_status("Username is required.", error=True)
+        try:
+            ids = self._register_screen().ids
+        except Exception:
+            self._set_register_status("Registration screen not available.", error=True)
             return
+        username = ids.register_username_input.text.strip()
+        if not username:
+            self._set_register_status("Username is required.", error=True)
+            return
+        display_name = ids.register_display_input.text.strip() or None
+        goal_label = ids.register_goal_spinner.text.strip()
+        preferred_goal = None
+        if goal_label and goal_label != "No goal":
+            preferred_goal = self._goal_label_map.get(goal_label)
+            if not preferred_goal:
+                self._set_register_status("Select a valid goal option.", error=True)
+                return
 
         try:
-            new_user_id = exercise_database.add_user(username=username)
+            new_user_id = exercise_database.add_user(
+                username=username,
+                display_name=display_name,
+                preferred_goal=preferred_goal,
+            )
         except ValueError as exc:
-            self._set_user_status(str(exc), error=True)
+            self._set_register_status(str(exc), error=True)
             return
         except sqlite3.IntegrityError:
-            self._set_user_status("Username already exists. Choose another.", error=True)
+            self._set_register_status("Username already exists. Choose another.", error=True)
             return
         except sqlite3.DatabaseError as exc:
-            self._set_user_status(f"Database error: {exc}", error=True)
+            self._set_register_status(f"Database error: {exc}", error=True)
             return
 
-        ids.username_input.text = ""
+        ids.register_username_input.text = ""
+        ids.register_display_input.text = ""
+        self.register_goal_spinner_text = "No goal"
         self.current_user_id = new_user_id
-        self.current_user_display = username
-        self.user_spinner_text = username
-        self._set_user_status(f"User '{username}' registered.")
-        self.user_profile_name = username
-        self.user_profile_goal = "No goal"
         self._load_users()
+        self._set_user_status(f"User '{username}' registered.")
+        self._set_register_status(f"User '{username}' registered.")
         self.go_home()
-        Clock.schedule_once(lambda *_: self.open_goal_prompt(), 0)
 
     def save_user_profile(self) -> bool:
         if not self.current_user_id:
@@ -3140,6 +3308,24 @@ class RootWidget(BoxLayout):
         if self.goal_choice_options:
             self.add_goal_spinner_text = self._preferred_goal_label()
         self.ids.screen_manager.current = "add"
+
+    def go_register(self) -> None:
+        try:
+            ids = self._register_screen().ids
+        except Exception:
+            ids = None
+        if ids:
+            if "register_username_input" in ids:
+                ids.register_username_input.text = ""
+            if "register_display_input" in ids:
+                ids.register_display_input.text = ""
+        preferred = self._preferred_goal_label()
+        if preferred and preferred in self.user_goal_options:
+            self.register_goal_spinner_text = preferred
+        else:
+            self.register_goal_spinner_text = "No goal"
+        self._set_register_status("")
+        self.ids.screen_manager.current = "register"
 
     def go_users(self) -> None:
         self.ids.screen_manager.current = "user"

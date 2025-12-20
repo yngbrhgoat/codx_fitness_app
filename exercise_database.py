@@ -14,6 +14,9 @@ GOALS = (
     "endurance_increase",
 )
 DEFAULT_GOAL_RATING = 5
+EXAMPLE_USERNAME = "exaple-user"
+EXAMPLE_DISPLAY_NAME = "Example User"
+EXAMPLE_PREFERRED_GOAL = "muscle_building"
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
@@ -900,6 +903,98 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def seed_example_user(conn: sqlite3.Connection) -> None:
+    """Ensure a sample user exists with a few workouts for previewing the app."""
+    row = conn.execute(
+        "SELECT id, display_name, preferred_goal FROM users WHERE username = ?;",
+        (EXAMPLE_USERNAME,),
+    ).fetchone()
+    if row:
+        user_id, display_name, preferred_goal = row
+        if display_name is None or preferred_goal is None:
+            conn.execute(
+                """
+                UPDATE users
+                SET display_name = COALESCE(display_name, ?),
+                    preferred_goal = COALESCE(preferred_goal, ?)
+                WHERE id = ?;
+                """,
+                (EXAMPLE_DISPLAY_NAME, EXAMPLE_PREFERRED_GOAL, user_id),
+            )
+            conn.commit()
+    else:
+        cursor = conn.execute(
+            "INSERT INTO users (username, display_name, preferred_goal) VALUES (?, ?, ?);",
+            (EXAMPLE_USERNAME, EXAMPLE_DISPLAY_NAME, EXAMPLE_PREFERRED_GOAL),
+        )
+        user_id = cursor.lastrowid
+        conn.commit()
+
+    has_workouts = conn.execute(
+        "SELECT 1 FROM workouts WHERE user_id = ? LIMIT 1;",
+        (user_id,),
+    ).fetchone()
+    if has_workouts:
+        return
+
+    def goal_label(goal: str) -> str:
+        return goal.replace("_", " ").title()
+
+    sample_workouts = [
+        {
+            "performed_at": "2024-02-06",
+            "duration_minutes": 35,
+            "goal": goal_label("muscle_building"),
+            "exercises": ["Push-Up", "Bench Press", "Goblet Squat"],
+            "sets_completed": 9,
+        },
+        {
+            "performed_at": "2024-02-14",
+            "duration_minutes": 28,
+            "goal": goal_label("weight_loss"),
+            "exercises": ["Jump Rope", "Kettlebell Swing", "Bicycle Crunch"],
+            "sets_completed": 6,
+        },
+        {
+            "performed_at": "2024-02-24",
+            "duration_minutes": 42,
+            "goal": goal_label("strength_increase"),
+            "exercises": ["Barbell Deadlift", "Leg Press", "Lat Pulldown"],
+            "sets_completed": 8,
+        },
+    ]
+
+    for workout in sample_workouts:
+        duration_minutes = workout["duration_minutes"]
+        cursor = conn.execute(
+            """
+            INSERT INTO workouts (
+                user_id,
+                performed_at,
+                duration_minutes,
+                goal,
+                duration_seconds,
+                total_sets_completed
+            )
+            VALUES (?, ?, ?, ?, ?, ?);
+            """,
+            (
+                user_id,
+                workout["performed_at"],
+                duration_minutes,
+                workout["goal"],
+                duration_minutes * 60,
+                workout["sets_completed"],
+            ),
+        )
+        workout_id = cursor.lastrowid
+        conn.executemany(
+            "INSERT INTO workout_exercises (workout_id, exercise_name, status) VALUES (?, ?, ?);",
+            [(workout_id, name, "completed") for name in workout["exercises"]],
+        )
+    conn.commit()
+
+
 def initialize_database(db_path: Optional[Path] = None) -> Path:
     """Create the SQLite database file with schema and seed data."""
     target_path = db_path or DB_PATH
@@ -907,6 +1002,7 @@ def initialize_database(db_path: Optional[Path] = None) -> Path:
         create_schema(conn)
         migrate_schema(conn)
         seed_sample_data(conn)
+        seed_example_user(conn)
     return target_path
 
 
