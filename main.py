@@ -226,11 +226,11 @@ KV = """
 
 <DatePickerPopup>:
     size_hint: None, None
-    size: dp(320), dp(380)
+    size: dp(360), dp(450)
     auto_dismiss: False
     BoxLayout:
         orientation: "vertical"
-        padding: dp(10)
+        padding: dp(12)
         spacing: dp(8)
         canvas.before:
             Color:
@@ -241,39 +241,72 @@ KV = """
                 radius: [10,]
         BoxLayout:
             size_hint_y: None
-            height: dp(32)
+            height: dp(24)
+            spacing: dp(8)
+            Label:
+                text: "Select date"
+                bold: True
+                color: 0.12, 0.14, 0.22, 1
+                valign: "middle"
+                text_size: self.size
+            Label:
+                text: "Selected: {}".format(root.selected_label)
+                color: 0.18, 0.18, 0.24, 1
+                halign: "right"
+                valign: "middle"
+                text_size: self.size
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
             spacing: dp(8)
             Button:
                 text: "<"
                 size_hint_x: None
-                width: dp(40)
+                width: dp(44)
+                background_normal: ""
+                background_down: ""
+                background_color: 0.9, 0.95, 1, 1
+                color: 0.12, 0.14, 0.22, 1
                 on_release: root.shift_month(-1)
             Label:
                 text: root.month_label
                 bold: True
                 color: 0.12, 0.14, 0.22, 1
+                halign: "center"
+                valign: "middle"
+                text_size: self.size
             Button:
                 text: ">"
                 size_hint_x: None
-                width: dp(40)
+                width: dp(44)
+                background_normal: ""
+                background_down: ""
+                background_color: 0.9, 0.95, 1, 1
+                color: 0.12, 0.14, 0.22, 1
                 on_release: root.shift_month(1)
         GridLayout:
             id: day_grid
             cols: 7
-            spacing: dp(4)
+            spacing: dp(6)
+            padding: dp(4)
             size_hint_y: None
-            row_default_height: dp(32)
+            row_default_height: dp(36)
             row_force_default: True
+            col_force_default: True
+            col_default_width: dp(40)
             height: self.minimum_height
         BoxLayout:
             size_hint_y: None
             height: dp(36)
             spacing: dp(8)
-            Widget:
+            Button:
+                text: "Today"
+                on_release: root.select_today()
+            Button:
+                text: "Use date"
+                on_release: root.confirm_selection()
             Button:
                 text: "Cancel"
-                size_hint_x: None
-                width: dp(120)
                 on_release: root.dismiss()
 
 <WorkoutLogModal>:
@@ -1471,11 +1504,14 @@ class RecommendationCard(BoxLayout):
 
 class DatePickerPopup(ModalView):
     month_label = StringProperty("")
+    selected_label = StringProperty("")
 
     def __init__(self, *, on_select, initial_date: Optional[date] = None, **kwargs):
         super().__init__(**kwargs)
         self._on_select = on_select
         chosen = initial_date or date.today()
+        self._selected_date = chosen
+        self.selected_label = chosen.isoformat()
         self._shown_year = chosen.year
         self._shown_month = chosen.month
         self.month_label = chosen.strftime("%B %Y")
@@ -1495,11 +1531,29 @@ class DatePickerPopup(ModalView):
         self.month_label = date(year, month, 1).strftime("%B %Y")
         self._populate_calendar()
 
-    def _select_day(self, day: int, *_: Any) -> None:
-        selected = date(self._shown_year, self._shown_month, day)
+    def confirm_selection(self) -> None:
+        selected = self._selected_date or date.today()
         if self._on_select:
             self._on_select(selected)
         self.dismiss()
+
+    def select_today(self) -> None:
+        today = date.today()
+        self._set_selected_date(today, update_month=True)
+        self.confirm_selection()
+
+    def _set_selected_date(self, selected: date, *, update_month: bool = False) -> None:
+        self._selected_date = selected
+        self.selected_label = selected.isoformat()
+        if update_month:
+            self._shown_year = selected.year
+            self._shown_month = selected.month
+            self.month_label = selected.strftime("%B %Y")
+        self._populate_calendar()
+
+    def _set_selected_day(self, day: int, *_: Any) -> None:
+        selected = date(self._shown_year, self._shown_month, day)
+        self._set_selected_date(selected)
 
     def _populate_calendar(self, *_: Any) -> None:
         if not self.ids:
@@ -1511,16 +1565,52 @@ class DatePickerPopup(ModalView):
                 Label(
                     text=weekday,
                     bold=True,
+                    font_size="12sp",
                     color=(0.15, 0.18, 0.25, 1),
+                    halign="center",
+                    valign="middle",
+                    text_size=(dp(40), dp(36)),
                 )
             )
+        today = date.today()
+        selected = self._selected_date
         month_days = calendar.Calendar(firstweekday=0).monthdayscalendar(self._shown_year, self._shown_month)
         for week in month_days:
             for day in week:
                 if day == 0:
                     grid.add_widget(Label(text=""))
                 else:
-                    grid.add_widget(Button(text=str(day), on_release=partial(self._select_day, day)))
+                    is_today = (
+                        today.year == self._shown_year
+                        and today.month == self._shown_month
+                        and today.day == day
+                    )
+                    is_selected = (
+                        selected
+                        and selected.year == self._shown_year
+                        and selected.month == self._shown_month
+                        and selected.day == day
+                    )
+                    if is_selected:
+                        background_color = (0.18, 0.4, 0.85, 1)
+                        text_color = (1, 1, 1, 1)
+                    elif is_today:
+                        background_color = (0.85, 0.92, 1, 1)
+                        text_color = (0.12, 0.14, 0.22, 1)
+                    else:
+                        background_color = (0.94, 0.96, 1, 1)
+                        text_color = (0.14, 0.16, 0.24, 1)
+                    grid.add_widget(
+                        Button(
+                            text=str(day),
+                            font_size="14sp",
+                            background_normal="",
+                            background_down="",
+                            background_color=background_color,
+                            color=text_color,
+                            on_release=partial(self._set_selected_day, day),
+                        )
+                    )
 
 
 class WorkoutLogModal(ModalView):
