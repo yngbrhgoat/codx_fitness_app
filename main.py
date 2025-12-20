@@ -241,7 +241,7 @@ KV = """
                 radius: [10,]
         BoxLayout:
             size_hint_y: None
-            height: dp(24)
+            height: dp(26)
             spacing: dp(8)
             Label:
                 text: "Select date"
@@ -284,20 +284,61 @@ KV = """
                 background_color: 0.9, 0.95, 1, 1
                 color: 0.12, 0.14, 0.22, 1
                 on_release: root.shift_month(1)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(32)
+            spacing: dp(6)
+            Button:
+                text: "<< Year"
+                size_hint_x: None
+                width: dp(84)
+                background_normal: ""
+                background_down: ""
+                background_color: 0.9, 0.95, 1, 1
+                color: 0.12, 0.14, 0.22, 1
+                on_release: root.shift_year(-1)
+            Button:
+                text: "-3 mo"
+                size_hint_x: None
+                width: dp(70)
+                background_normal: ""
+                background_down: ""
+                background_color: 0.92, 0.96, 1, 1
+                color: 0.12, 0.14, 0.22, 1
+                on_release: root.shift_month(-3)
+            Widget:
+            Button:
+                text: "+3 mo"
+                size_hint_x: None
+                width: dp(70)
+                background_normal: ""
+                background_down: ""
+                background_color: 0.92, 0.96, 1, 1
+                color: 0.12, 0.14, 0.22, 1
+                on_release: root.shift_month(3)
+            Button:
+                text: "Year >>"
+                size_hint_x: None
+                width: dp(84)
+                background_normal: ""
+                background_down: ""
+                background_color: 0.9, 0.95, 1, 1
+                color: 0.12, 0.14, 0.22, 1
+                on_release: root.shift_year(1)
         GridLayout:
             id: day_grid
             cols: 7
             spacing: dp(6)
             padding: dp(4)
             size_hint_y: None
-            row_default_height: dp(36)
+            row_default_height: dp(32)
             row_force_default: True
             col_force_default: True
             col_default_width: dp(40)
-            height: self.minimum_height
+            height: dp(260)
         BoxLayout:
             size_hint_y: None
-            height: dp(36)
+            height: dp(40)
             spacing: dp(8)
             Button:
                 text: "Today"
@@ -1518,18 +1559,10 @@ class DatePickerPopup(ModalView):
         Clock.schedule_once(self._populate_calendar, 0)
 
     def shift_month(self, delta: int) -> None:
-        month = self._shown_month + delta
-        year = self._shown_year
-        if month < 1:
-            month = 12
-            year -= 1
-        elif month > 12:
-            month = 1
-            year += 1
-        self._shown_month = month
-        self._shown_year = year
-        self.month_label = date(year, month, 1).strftime("%B %Y")
-        self._populate_calendar()
+        self._change_months(delta)
+
+    def shift_year(self, delta_years: int) -> None:
+        self._change_months(delta_years * 12)
 
     def confirm_selection(self) -> None:
         selected = self._selected_date or date.today()
@@ -1555,6 +1588,16 @@ class DatePickerPopup(ModalView):
         selected = date(self._shown_year, self._shown_month, day)
         self._set_selected_date(selected)
 
+    def _change_months(self, delta_months: int) -> None:
+        total_months = (self._shown_year * 12 + (self._shown_month - 1)) + delta_months
+        if total_months < 0:
+            total_months = 0
+        new_year, month_index = divmod(total_months, 12)
+        self._shown_year = new_year
+        self._shown_month = month_index + 1
+        self.month_label = date(self._shown_year, self._shown_month, 1).strftime("%B %Y")
+        self._populate_calendar()
+
     def _populate_calendar(self, *_: Any) -> None:
         if not self.ids:
             return
@@ -1569,7 +1612,7 @@ class DatePickerPopup(ModalView):
                     color=(0.15, 0.18, 0.25, 1),
                     halign="center",
                     valign="middle",
-                    text_size=(dp(40), dp(36)),
+                    text_size=(dp(40), dp(32)),
                 )
             )
         today = date.today()

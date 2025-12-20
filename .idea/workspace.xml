@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Neuerfassung, da Versionen durcheinandergekommen sind." />
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Kalender-Auswahl">
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -258,7 +260,15 @@
       <option name="project" value="LOCAL" />
       <updated>1766241096657</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="Kalender-Auswahl">
+      <option name="closed" value="true" />
+      <created>1766244946526</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1766244946526</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -290,7 +300,8 @@
     <MESSAGE value="Verbessrung aus dem Review" />
     <MESSAGE value="Hinzufügen von Unit-Tests" />
     <MESSAGE value="Neuerfassung, da Versionen durcheinandergekommen sind." />
-    <option name="LAST_COMMIT_MESSAGE" value="Neuerfassung, da Versionen durcheinandergekommen sind." />
+    <MESSAGE value="Kalender-Auswahl" />
+    <option name="LAST_COMMIT_MESSAGE" value="Kalender-Auswahl" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
