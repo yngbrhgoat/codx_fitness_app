@@ -41,6 +41,27 @@ KV = """
     text_size: self.size
     valign: "middle"
 
+<WrapLabel@Label>:
+    text_size: self.width, None
+    size_hint_y: None
+    height: self.texture_size[1]
+    halign: "left"
+    valign: "middle"
+
+<GridInfoLabel@Label>:
+    text_size: self.size
+    halign: "left"
+    valign: "middle"
+    shorten: True
+    shorten_from: "right"
+
+<NavButton@Button>:
+    background_normal: ""
+    background_down: ""
+    background_color: 0.22, 0.32, 0.45, 1
+    color: 1, 1, 1, 1
+    font_size: "14sp"
+
 <ExerciseCard>:
     orientation: "vertical"
     padding: dp(12)
@@ -77,13 +98,13 @@ KV = """
         height: self.minimum_height
         col_force_default: True
         col_default_width: self.width / 3
-        Label:
+        GridInfoLabel:
             text: "Suitability: {}".format(root.suitability_display)
             color: 0.2, 0.2, 0.3, 1
-        Label:
+        GridInfoLabel:
             text: "Muscle: {}".format(root.muscle_group)
             color: 0.15, 0.15, 0.2, 1
-        Label:
+        GridInfoLabel:
             text: "Equipment: {}".format(root.equipment)
             color: 0.15, 0.15, 0.2, 1
     Label:
@@ -161,29 +182,28 @@ KV = """
         color: 0.1, 0.12, 0.2, 1
         size_hint_y: None
         height: self.texture_size[1]
-    Label:
-        text: root.description if root.show_details else ""
+    WrapLabel:
+        text: root.description
         color: 0.1, 0.12, 0.18, 1
         text_size: self.width, None
         size_hint_y: None
-        height: self.texture_size[1] if root.show_details else 0
-        opacity: 1 if root.show_details else 0
-    Label:
+        height: self.texture_size[1]
+    WrapLabel:
         text: "Muscle: {} | Equipment: {}".format(root.muscle_group, root.equipment)
         color: 0.2, 0.2, 0.3, 1
         size_hint_y: None
         height: self.texture_size[1]
-    Label:
+    WrapLabel:
         text: "Suitability: {} | Est. time: {} min".format(root.suitability, root.estimated_minutes)
         color: 0.2, 0.2, 0.3, 1
         size_hint_y: None
         height: self.texture_size[1]
-    Label:
+    WrapLabel:
         text: "Recommendation score: {}".format(root.score_display)
         color: 0.16, 0.16, 0.22, 1
         size_hint_y: None
         height: self.texture_size[1]
-    Label:
+    WrapLabel:
         text: root.recommendation
         color: 0.18, 0.18, 0.24, 1
         text_size: self.width, None
@@ -198,7 +218,7 @@ KV = """
             on_release: app.root.add_recommendation_to_plan(root.name)
         Button:
             text: "Details"
-            on_release: app.root.toggle_recommendation_details(root.name)
+            on_release: app.root.open_recommendation_details(root.name)
 
 <PlanItem>:
     orientation: "horizontal"
@@ -395,7 +415,7 @@ KV = """
                     row_default_height: dp(34)
                     size_hint_y: None
                     height: self.minimum_height
-                    Label:
+                    WrapLabel:
                         text: "Workout date (YYYY-MM-DD)"
                         color: 0.18, 0.18, 0.22, 1
                     BoxLayout:
@@ -410,7 +430,7 @@ KV = """
                             size_hint_x: None
                             width: dp(70)
                             on_release: app.root.open_date_picker(workout_date_input)
-                    Label:
+                    WrapLabel:
                         text: "Duration (minutes)"
                         color: 0.18, 0.18, 0.22, 1
                     TextInput:
@@ -418,7 +438,7 @@ KV = """
                         multiline: False
                         input_filter: "int"
                         hint_text: "e.g. 45"
-                    Label:
+                    WrapLabel:
                         text: "Goal (optional)"
                         color: 0.18, 0.18, 0.22, 1
                     Spinner:
@@ -426,7 +446,7 @@ KV = """
                         text: app.root.workout_goal_spinner_text
                         values: app.root.workout_goal_options
                         on_text: app.root.workout_goal_spinner_text = self.text
-                    Label:
+                    WrapLabel:
                         text: "Total sets completed (optional)"
                         color: 0.18, 0.18, 0.22, 1
                     TextInput:
@@ -434,7 +454,7 @@ KV = """
                         multiline: False
                         input_filter: "int"
                         hint_text: "e.g. 12"
-                    Label:
+                    WrapLabel:
                         text: "Exercises (comma or newline separated)"
                         color: 0.18, 0.18, 0.22, 1
                     TextInput:
@@ -443,7 +463,7 @@ KV = """
                         size_hint_y: None
                         height: dp(80)
                         hint_text: "Push-Up, Plank, Jump Rope"
-                    Label:
+                    WrapLabel:
                         text: "Filter exercises"
                         color: 0.18, 0.18, 0.22, 1
                     BoxLayout:
@@ -458,7 +478,7 @@ KV = """
                             size_hint_x: None
                             width: dp(70)
                             on_release: app.root.clear_history_exercise_filter()
-                    Label:
+                    WrapLabel:
                         text: "Add exercise from list"
                         color: 0.18, 0.18, 0.22, 1
                     BoxLayout:
@@ -473,11 +493,9 @@ KV = """
                             size_hint_x: None
                             width: dp(80)
                             on_release: app.root.add_history_exercise_from_menu()
-        Label:
+        WrapLabel:
             text: app.root.history_status_text
             color: app.root.history_status_color
-            size_hint_y: None
-            height: dp(20)
         BoxLayout:
             size_hint_y: None
             height: dp(40)
@@ -487,6 +505,159 @@ KV = """
                 on_release: app.root.handle_add_workout()
             Button:
                 text: "Cancel"
+                on_release: root.dismiss()
+
+<GoalPromptModal>:
+    size_hint: 0.9, 0.55
+    auto_dismiss: False
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(10)
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [10,]
+        Label:
+            text: "Set your training goal"
+            font_size: "18sp"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(24)
+        WrapLabel:
+            text: "Choose a goal for {}.".format(app.root.current_user_display)
+            color: 0.18, 0.18, 0.24, 1
+        Spinner:
+            id: goal_prompt_spinner
+            text: app.root.user_profile_goal
+            values: app.root.user_goal_options
+            on_text: app.root.user_profile_goal = self.text
+        WrapLabel:
+            text: app.root.user_profile_status_text
+            color: app.root.user_profile_status_color
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(8)
+            Button:
+                text: "Save goal"
+                on_release: app.root.save_user_profile() and root.dismiss()
+            Button:
+                text: "Skip for now"
+                on_release: app.root.skip_goal_prompt()
+
+<RecommendationDetailsModal>:
+    size_hint: 0.96, 0.92
+    auto_dismiss: False
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(8)
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [10,]
+        Label:
+            text: "Exercise details"
+            font_size: "18sp"
+            bold: True
+            color: 0.12, 0.14, 0.22, 1
+            size_hint_y: None
+            height: dp(24)
+        WrapLabel:
+            text: root.exercise_name
+            font_size: "20sp"
+            bold: True
+            color: 0.1, 0.12, 0.2, 1
+        ScrollView:
+            do_scroll_x: False
+            BoxLayout:
+                orientation: "vertical"
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+                WrapLabel:
+                    text: root.description
+                    color: 0.16, 0.18, 0.24, 1
+                GridLayout:
+                    cols: 2
+                    spacing: dp(8)
+                    row_default_height: dp(24)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    GridInfoLabel:
+                        text: "Goal"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.goal_label or "—"
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Muscle"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.muscle_group or "—"
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Equipment"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.equipment or "—"
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Suitability"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.suitability or "—"
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Est. time"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: "{} min".format(root.estimated_minutes) if root.estimated_minutes else "—"
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Score"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.score_display or "—"
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Sets"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.sets_display
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Reps"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.reps_display
+                        color: 0.16, 0.2, 0.3, 1
+                    GridInfoLabel:
+                        text: "Time"
+                        color: 0.18, 0.18, 0.22, 1
+                    WrapLabel:
+                        text: root.time_display
+                        color: 0.16, 0.2, 0.3, 1
+                WrapLabel:
+                    text: "Recommendation: {}".format(root.recommendation)
+                    color: 0.16, 0.2, 0.3, 1
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(8)
+            Button:
+                text: "Add to plan"
+                on_release: app.root.add_recommendation_to_plan(root.exercise_name); root.dismiss()
+            Button:
+                text: "Close"
                 on_release: root.dismiss()
 
 <LiveScreen>:
@@ -599,27 +770,19 @@ KV = """
                     font_size: "20sp"
                     bold: True
                     color: 0.08, 0.12, 0.22, 1
-        Label:
+        WrapLabel:
             text: app.root.live_current_set_display
             color: 0.14, 0.16, 0.24, 1
-            size_hint_y: None
-            height: dp(22)
-        Label:
+        WrapLabel:
             text: app.root.live_instruction
             color: 0.14, 0.16, 0.26, 1
-            size_hint_y: None
-            height: dp(22)
-        Label:
+        WrapLabel:
             text: app.root.live_tempo_hint
             color: 0.12, 0.18, 0.34, 1
-            size_hint_y: None
-            height: dp(22)
-        Label:
+        WrapLabel:
             text: app.root.live_hint_text
             color: app.root.live_hint_color
             bold: True
-            size_hint_y: None
-            height: dp(24)
         Label:
             text: "Upcoming: {}".format(app.root.live_upcoming_display)
             color: 0.16, 0.16, 0.22, 1
@@ -668,13 +831,11 @@ KV = """
             color: 0.2, 0.2, 0.3, 1
             size_hint_y: None
             height: dp(22)
-        Label:
+        WrapLabel:
             text: "Live Mode: build a plan under Recommend, then press Start."
             font_size: "18sp"
             bold: True
             color: 0.16, 0.16, 0.22, 1
-            size_hint_y: None
-            height: dp(26)
             text_size: self.width, None
             halign: "center"
         BoxLayout:
@@ -697,11 +858,9 @@ KV = """
                 color: 0.12, 0.14, 0.22, 1
                 size_hint_y: None
                 height: dp(22)
-            Label:
+            WrapLabel:
                 text: "Current user: {}".format(app.root.current_user_display)
                 color: 0.2, 0.2, 0.3, 1
-                size_hint_y: None
-                height: dp(18)
             GridLayout:
                 cols: 2
                 spacing: dp(8)
@@ -722,11 +881,9 @@ KV = """
                 Button:
                     text: "Save profile"
                     on_release: app.root.save_user_profile()
-            Label:
+            WrapLabel:
                 text: app.root.user_profile_status_text
                 color: app.root.user_profile_status_color
-                size_hint_y: None
-                height: dp(18)
         AnchorLayout:
             anchor_y: "center"
             BoxLayout:
@@ -745,7 +902,7 @@ KV = """
                         font_size: "26sp"
                         bold: True
                         background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
+                        background_color: 0.16, 0.6, 0.65, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_browse()
                     Button:
@@ -753,7 +910,7 @@ KV = """
                         font_size: "26sp"
                         bold: True
                         background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
+                        background_color: 0.2, 0.45, 0.85, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_add()
                     Button:
@@ -761,7 +918,7 @@ KV = """
                         font_size: "26sp"
                         bold: True
                         background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
+                        background_color: 0.9, 0.55, 0.15, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_users()
                 BoxLayout:
@@ -773,7 +930,7 @@ KV = """
                         font_size: "26sp"
                         bold: True
                         background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
+                        background_color: 0.2, 0.65, 0.3, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_history()
                     Button:
@@ -781,7 +938,7 @@ KV = """
                         font_size: "26sp"
                         bold: True
                         background_normal: ""
-                        background_color: 0.18, 0.4, 0.85, 1
+                        background_color: 0.85, 0.35, 0.25, 1
                         color: 1, 1, 1, 1
                         on_release: app.root.go_recommend()
 
@@ -875,14 +1032,14 @@ KV = """
                 row_default_height: dp(34)
                 size_hint_y: None
                 height: self.minimum_height
-                Label:
+                WrapLabel:
                     text: "Name"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
                     id: name_input
                     multiline: False
                     hint_text: "e.g. Bulgarian Split Squat"
-                Label:
+                WrapLabel:
                     text: "Description"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
@@ -891,7 +1048,7 @@ KV = """
                     size_hint_y: None
                     height: dp(64)
                     hint_text: "Short overview"
-                Label:
+                WrapLabel:
                     text: "Muscle group (choose known)"
                     color: 0.18, 0.18, 0.22, 1
                 Spinner:
@@ -899,7 +1056,7 @@ KV = """
                     text: app.root.add_muscle_spinner_text
                     values: app.root.muscle_choice_options
                     on_text: app.root.add_muscle_spinner_text = self.text
-                Label:
+                WrapLabel:
                     text: "Allowed muscle groups"
                     color: 0.18, 0.18, 0.22, 1
                 Label:
@@ -908,7 +1065,7 @@ KV = """
                     text_size: self.width, None
                     size_hint_y: None
                     height: self.texture_size[1]
-                Label:
+                WrapLabel:
                     text: "Required equipment"
                     color: 0.18, 0.18, 0.22, 1
                 Spinner:
@@ -916,7 +1073,7 @@ KV = """
                     text: app.root.add_equipment_spinner_text
                     values: app.root.equipment_choice_options
                     on_text: app.root.add_equipment_spinner_text = self.text
-                Label:
+                WrapLabel:
                     text: "Allowed equipment"
                     color: 0.18, 0.18, 0.22, 1
                 Label:
@@ -925,7 +1082,7 @@ KV = """
                     text_size: self.width, None
                     size_hint_y: None
                     height: self.texture_size[1]
-                Label:
+                WrapLabel:
                     text: "Equipment default"
                     color: 0.18, 0.18, 0.22, 1
                 Label:
@@ -933,7 +1090,7 @@ KV = """
                     color: 0.2, 0.2, 0.28, 1
                     size_hint_y: None
                     height: dp(18)
-                Label:
+                WrapLabel:
                     text: "Target suitability goal"
                     color: 0.18, 0.18, 0.22, 1
                 Spinner:
@@ -941,14 +1098,14 @@ KV = """
                     text: app.root.add_goal_spinner_text
                     values: app.root.goal_choice_options
                     on_text: app.root.add_goal_spinner_text = self.text
-                Label:
+                WrapLabel:
                     text: "Suitability rating (1-10, default 5)"
                     color: 0.18, 0.18, 0.22, 1
                 Spinner:
                     id: rating_spinner
                     text: app.root.rating_spinner_text
                     values: ("1","2","3","4","5","6","7","8","9","10")
-                Label:
+                WrapLabel:
                     text: "Recommended sets (optional, e.g. 3)"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
@@ -956,7 +1113,7 @@ KV = """
                     multiline: False
                     input_filter: "int"
                     hint_text: "e.g. 3 (optional)"
-                Label:
+                WrapLabel:
                     text: "Recommended reps (optional, e.g. 10)"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
@@ -964,7 +1121,7 @@ KV = """
                     multiline: False
                     input_filter: "int"
                     hint_text: "e.g. 10 (optional)"
-                Label:
+                WrapLabel:
                     text: "Recommended time (sec, optional, e.g. 45)"
                     color: 0.18, 0.18, 0.22, 1
                 TextInput:
@@ -979,11 +1136,9 @@ KV = """
                 Button:
                     text: "Add Exercise"
                     on_press: app.root.handle_add_exercise()
-            Label:
+            WrapLabel:
                 text: app.root.status_text
                 color: app.root.status_color
-                size_hint_y: None
-                height: dp(18)
 
 <UserScreen>:
     BoxLayout:
@@ -1004,13 +1159,11 @@ KV = """
                 spacing: dp(10)
                 size_hint_y: None
                 height: self.minimum_height
-                Label:
+                WrapLabel:
                     text: "Select user"
                     font_size: "18sp"
                     bold: True
                     color: 0.12, 0.14, 0.22, 1
-                    size_hint_y: None
-                    height: dp(26)
                     text_size: self.width, None
                     halign: "center"
                 AnchorLayout:
@@ -1027,18 +1180,14 @@ KV = """
                         text_size: self.size
                         halign: "center"
                         valign: "middle"
-                Label:
+                WrapLabel:
                     text: "Pick a user to get started."
                     color: 0.2, 0.2, 0.3, 1
-                    size_hint_y: None
-                    height: dp(20)
                     text_size: self.width, None
                     halign: "center"
-                Label:
+                WrapLabel:
                     text: "Current user: {}".format(app.root.current_user_display)
                     color: 0.2, 0.2, 0.3, 1
-                    size_hint_y: None
-                    height: dp(22)
                     text_size: self.width, None
                     halign: "center"
                 AnchorLayout:
@@ -1082,11 +1231,9 @@ KV = """
                         size_hint_x: None
                         width: dp(120)
                         on_release: app.root.handle_register_user()
-                Label:
+                WrapLabel:
                     text: app.root.user_status_text
                     color: app.root.user_status_color
-                    size_hint_y: None
-                    height: dp(20)
 
 <HistoryScreen>:
     ScrollView:
@@ -1110,18 +1257,16 @@ KV = """
                 color: 0.12, 0.14, 0.22, 1
                 size_hint_y: None
                 height: dp(26)
-            Label:
+            WrapLabel:
                 text: "Current user: {}".format(app.root.current_user_display)
                 color: 0.2, 0.2, 0.3, 1
-                size_hint_y: None
-                height: dp(22)
             GridLayout:
                 cols: 2
                 spacing: dp(8)
                 row_default_height: dp(34)
                 size_hint_y: None
                 height: self.minimum_height
-                Label:
+                WrapLabel:
                     text: "Start date (YYYY-MM-DD)"
                     color: 0.18, 0.18, 0.22, 1
                 BoxLayout:
@@ -1136,7 +1281,7 @@ KV = """
                         size_hint_x: None
                         width: dp(70)
                         on_release: app.root.open_date_picker(start_date_input)
-                Label:
+                WrapLabel:
                     text: "End date (YYYY-MM-DD)"
                     color: 0.18, 0.18, 0.22, 1
                 BoxLayout:
@@ -1201,11 +1346,9 @@ KV = """
                 Button:
                     text: "Refresh history"
                     on_release: app.root._load_history()
-            Label:
+            WrapLabel:
                 text: app.root.history_status_text
                 color: app.root.history_status_color
-                size_hint_y: None
-                height: dp(20)
             RecycleView:
                 id: history_list
                 viewclass: "WorkoutCard"
@@ -1238,7 +1381,7 @@ KV = """
             row_default_height: dp(34)
             size_hint_y: None
             height: self.minimum_height
-            Label:
+            WrapLabel:
                 text: "Goal"
                 color: 0.18, 0.18, 0.22, 1
             Spinner:
@@ -1246,7 +1389,7 @@ KV = """
                 text: app.root.rec_goal_spinner_text
                 values: app.root.goal_choice_options
                 on_text: app.root.rec_goal_spinner_text = self.text
-            Label:
+            WrapLabel:
                 text: "Max time (minutes)"
                 color: 0.18, 0.18, 0.22, 1
             TextInput:
@@ -1264,11 +1407,9 @@ KV = """
             Button:
                 text: "Clear plan"
                 on_release: app.root.clear_recommendation_plan()
-        Label:
+        WrapLabel:
             text: app.root.rec_status_text
             color: app.root.rec_status_color
-            size_hint_y: None
-            height: dp(20)
         Label:
             text: "Recommended exercises"
             bold: True
@@ -1350,27 +1491,26 @@ KV = """
                 Label:
                     text: "Finished at"
                     color: 0.18, 0.18, 0.22, 1
-                Label:
+                WrapLabel:
                     text: app.root.summary_performed_at_display
                     color: 0.16, 0.2, 0.3, 1
-                    text_size: self.width, None
                     halign: "left"
                 Label:
                     text: "Goal"
                     color: 0.18, 0.18, 0.22, 1
-                Label:
+                WrapLabel:
                     text: app.root.summary_goal_display
                     color: 0.16, 0.2, 0.3, 1
                 Label:
                     text: "Total duration"
                     color: 0.18, 0.18, 0.22, 1
-                Label:
+                WrapLabel:
                     text: app.root.summary_duration_display
                     color: 0.16, 0.2, 0.3, 1
                 Label:
                     text: "Completed sets"
                     color: 0.18, 0.18, 0.22, 1
-                Label:
+                WrapLabel:
                     text: app.root.summary_sets_display
                     color: 0.16, 0.2, 0.3, 1
             Label:
@@ -1423,7 +1563,7 @@ KV = """
         spacing: dp(10)
         canvas.before:
             Color:
-                rgba: 1, 1, 1, 1
+                rgba: 0.94, 0.96, 0.99, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -1433,37 +1573,37 @@ KV = """
             bold: True
             color: 0.1, 0.12, 0.2, 1
         Widget:
-        Button:
+        NavButton:
             text: "Home"
             size_hint_x: None
             width: dp(90)
             on_release: root.go_home()
-        Button:
+        NavButton:
             text: "Browse"
             size_hint_x: None
             width: dp(90)
             on_release: root.go_browse()
-        Button:
+        NavButton:
             text: "Add"
             size_hint_x: None
             width: dp(90)
             on_release: root.go_add()
-        Button:
+        NavButton:
             text: "Users"
             size_hint_x: None
             width: dp(90)
             on_release: root.go_users()
-        Button:
+        NavButton:
             text: "History"
             size_hint_x: None
             width: dp(90)
             on_release: root.go_history()
-        Button:
+        NavButton:
             text: "Recommend"
             size_hint_x: None
             width: dp(110)
             on_release: root.go_recommend()
-        Button:
+        NavButton:
             text: "Live"
             size_hint_x: None
             width: dp(90)
@@ -1678,6 +1818,25 @@ class WorkoutLogModal(ModalView):
     pass
 
 
+class GoalPromptModal(ModalView):
+    pass
+
+
+class RecommendationDetailsModal(ModalView):
+    exercise_name = StringProperty("")
+    description = StringProperty("")
+    muscle_group = StringProperty("")
+    equipment = StringProperty("")
+    goal_label = StringProperty("")
+    suitability = StringProperty("")
+    estimated_minutes = StringProperty("")
+    score_display = StringProperty("")
+    recommendation = StringProperty("")
+    sets_display = StringProperty("—")
+    reps_display = StringProperty("—")
+    time_display = StringProperty("—")
+
+
 class RootWidget(BoxLayout):
     goal_options = ListProperty()
     goal_choice_options = ListProperty()
@@ -1770,6 +1929,8 @@ class RootWidget(BoxLayout):
         self._goal_label_map = {self._pretty_goal(goal): goal for goal in exercise_database.GOALS}
         self._goal_code_label_map = {goal: self._pretty_goal(goal) for goal in exercise_database.GOALS}
         self._workout_log_modal: Optional[WorkoutLogModal] = None
+        self._goal_prompt_modal: Optional[GoalPromptModal] = None
+        self._recommendation_detail_modal: Optional[RecommendationDetailsModal] = None
         self._live_clock = None
         self._live_current_index = 0
         self._live_current_set = 1
@@ -2145,21 +2306,22 @@ class RootWidget(BoxLayout):
         self.user_profile_goal = "No goal"
         self._load_users()
         self.go_home()
+        Clock.schedule_once(lambda *_: self.open_goal_prompt(), 0)
 
-    def save_user_profile(self) -> None:
+    def save_user_profile(self) -> bool:
         if not self.current_user_id:
             self._set_user_profile_status("Select a user to update the profile.", error=True)
-            return
+            return False
         display_name = self.user_profile_name.strip()
         if not display_name:
             self._set_user_profile_status("Display name cannot be empty.", error=True)
-            return
+            return False
         preferred_goal = None
         if self.user_profile_goal and self.user_profile_goal != "No goal":
             preferred_goal = self._goal_label_map.get(self.user_profile_goal)
             if not preferred_goal:
                 self._set_user_profile_status("Select a valid goal option.", error=True)
-                return
+                return False
         try:
             exercise_database.update_user_profile(
                 user_id=self.current_user_id,
@@ -2168,10 +2330,11 @@ class RootWidget(BoxLayout):
             )
         except sqlite3.DatabaseError as exc:
             self._set_user_profile_status(f"Database error: {exc}", error=True)
-            return
+            return False
         self.current_user_display = display_name
         self._load_users()
         self._set_user_profile_status("Profile saved.")
+        return True
 
     def on_user_selected(self, username: str) -> None:
         selected = next((u for u in self._users if u["username"] == username), None)
@@ -2244,6 +2407,9 @@ class RootWidget(BoxLayout):
     def _clear_workout_log_modal(self, *_: Any) -> None:
         self._workout_log_modal = None
 
+    def _clear_goal_prompt_modal(self, *_: Any) -> None:
+        self._goal_prompt_modal = None
+
     def open_workout_log_modal(self) -> None:
         if not self._require_user():
             return
@@ -2274,6 +2440,37 @@ class RootWidget(BoxLayout):
             self._workout_log_modal.dismiss()
         except Exception:
             pass
+
+    def _dismiss_goal_prompt_modal(self) -> None:
+        if self._goal_prompt_modal is None:
+            return
+        try:
+            self._goal_prompt_modal.dismiss()
+        except Exception:
+            pass
+
+    def open_goal_prompt(self) -> None:
+        if not self.current_user_id or not self.user_goal_options:
+            return
+        if self._goal_prompt_modal is not None:
+            try:
+                self._goal_prompt_modal.dismiss()
+            except Exception:
+                pass
+        if self.user_profile_goal == "No goal":
+            preferred = self._preferred_goal_label()
+            if preferred and preferred in self.user_goal_options:
+                self.user_profile_goal = preferred
+        self._set_user_profile_status("")
+        modal = GoalPromptModal()
+        modal.bind(on_dismiss=self._clear_goal_prompt_modal)
+        self._goal_prompt_modal = modal
+        modal.open()
+
+    def skip_goal_prompt(self) -> None:
+        self.user_profile_goal = "No goal"
+        self._set_user_profile_status("")
+        self._dismiss_goal_prompt_modal()
 
     def add_history_exercise_from_menu(self) -> None:
         ids = self._workout_form_ids()
@@ -2612,6 +2809,43 @@ class RootWidget(BoxLayout):
 
     def _find_recommendation(self, name: str) -> Optional[dict[str, Any]]:
         return next((rec for rec in self.rec_recommendations if rec["name"] == name), None)
+
+    def _clear_recommendation_detail_modal(self, *_: Any) -> None:
+        self._recommendation_detail_modal = None
+
+    def open_recommendation_details(self, name: str) -> None:
+        rec = self._find_recommendation(name)
+        if not rec:
+            return
+        if self._recommendation_detail_modal is not None:
+            try:
+                self._recommendation_detail_modal.dismiss()
+            except Exception:
+                pass
+        modal = RecommendationDetailsModal()
+        modal.exercise_name = rec.get("name", "")
+        modal.description = rec.get("description", "")
+        modal.muscle_group = rec.get("muscle_group", "")
+        modal.equipment = rec.get("equipment", "")
+        modal.goal_label = rec.get("goal_label", "")
+        modal.suitability = rec.get("suitability", "")
+        estimated = rec.get("estimated_minutes")
+        score_display = rec.get("score_display")
+        modal.estimated_minutes = str(estimated) if estimated is not None else ""
+        modal.score_display = str(score_display) if score_display is not None else ""
+        modal.recommendation = rec.get("recommendation", "")
+        sets = rec.get("sets")
+        reps = rec.get("reps")
+        time_seconds = rec.get("time_seconds")
+        modal.sets_display = str(sets) if sets is not None else "—"
+        modal.reps_display = str(reps) if reps is not None else "—"
+        if time_seconds is None:
+            modal.time_display = "—"
+        else:
+            modal.time_display = f"{time_seconds} sec"
+        modal.bind(on_dismiss=self._clear_recommendation_detail_modal)
+        self._recommendation_detail_modal = modal
+        modal.open()
 
     def toggle_recommendation_details(self, name: str) -> None:
         rec = self._find_recommendation(name)
