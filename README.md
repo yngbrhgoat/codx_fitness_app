@@ -102,7 +102,7 @@ Die wichtigsten Funktionsbereiche im Abgleich mit den Anforderungen:
 - Zusammenfassung nach dem Training:
   - Gesamtdauer
   - Abgeschlossene Übungen
-  - Übersprungene Übungen
+  - Übersprungene Übungen oder in der Mitte abgebrochen
   - Gesamtzahl der abgeschlossenen Sätze
 - Speicherung in der Benutzerhistorie:
   - Datum/Uhrzeit
