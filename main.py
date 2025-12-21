@@ -62,6 +62,22 @@ KV = """
     halign: "left"
     valign: "middle"
 
+<InstructionBadge@Label>:
+    text_size: self.width - dp(20), None
+    size_hint_y: None
+    height: self.texture_size[1] + dp(14)
+    padding: dp(10), dp(6)
+    font_size: "20sp"
+    bold: True
+    color: 1, 1, 1, 1
+    canvas.before:
+        Color:
+            rgba: 0.2, 0.45, 0.8, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10,]
+
 <GridInfoLabel@Label>:
     text_size: self.size
     halign: "left"
@@ -667,166 +683,267 @@ KV = """
             size_hint_y: None
             height: dp(40)
             spacing: dp(8)
-            Button:
-                text: "Add to plan"
-                on_release: app.root.add_recommendation_to_plan(root.exercise_name); root.dismiss()
-            Button:
-                text: "Close"
-                on_release: root.dismiss()
+        Button:
+            text: "Add to plan"
+            on_release: app.root.add_recommendation_to_plan(root.exercise_name); root.dismiss()
+        Button:
+            text: "Close"
+            on_release: root.dismiss()
 
 <LiveScreen>:
-    BoxLayout:
-        orientation: "vertical"
-        padding: dp(14)
-        spacing: dp(10)
-        canvas.before:
-            Color:
-                rgba: 1, 1, 1, 1
-            Rectangle:
-                pos: self.pos
-                size: self.size
-        GridLayout:
-            cols: 2
-            spacing: dp(8)
-            size_hint_y: None
-            row_default_height: dp(30)
-            height: self.minimum_height
-            Label:
-                text: app.root.live_progress_display
-                bold: True
-                color: 0.1, 0.12, 0.2, 1
-            Label:
-                text: app.root.live_state_display
-                color: 0.16, 0.2, 0.35, 1
+    ScrollView:
+        do_scroll_x: False
         BoxLayout:
             orientation: "vertical"
-            padding: dp(10)
-            spacing: dp(6)
-            size_hint_y: None
-            height: dp(150)
-            canvas.before:
-                Color:
-                    rgba: 0.92, 0.97, 1, 1
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [10,]
-            Label:
-                text: app.root.live_exercise_title
-                font_size: "22sp"
-                bold: True
-                color: 0.08, 0.12, 0.22, 1
-                size_hint_y: None
-                height: self.texture_size[1]
-            Label:
-                text: app.root.live_icon_display
-                color: 0.18, 0.2, 0.32, 1
-                size_hint_y: None
-                height: self.texture_size[1]
-            Label:
-                text: "Target: {} | Equipment: {}".format(app.root.live_muscle_display, app.root.live_equipment_display)
-                color: 0.18, 0.18, 0.24, 1
-                size_hint_y: None
-                height: self.texture_size[1]
-            Label:
-                text: app.root.live_recommendation_display
-                color: 0.16, 0.2, 0.3, 1
-                size_hint_y: None
-                height: self.texture_size[1]
-        GridLayout:
-            cols: 3
-            spacing: dp(8)
-            size_hint_y: None
-            height: dp(90)
-            canvas.before:
-                Color:
-                    rgba: 0.94, 0.97, 1, 1
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [8,]
-            BoxLayout:
-                orientation: "vertical"
-                padding: dp(6)
-                Label:
-                    text: "Exercise time"
-                    color: 0.16, 0.18, 0.24, 1
-                    size_hint_y: None
-                    height: dp(20)
-                Label:
-                    text: app.root.live_exercise_timer
-                    font_size: "20sp"
-                    bold: True
-                    color: 0.08, 0.12, 0.22, 1
-            BoxLayout:
-                orientation: "vertical"
-                padding: dp(6)
-                Label:
-                    text: "Set time"
-                    color: 0.16, 0.18, 0.24, 1
-                    size_hint_y: None
-                    height: dp(20)
-                Label:
-                    text: app.root.live_set_timer
-                    font_size: "20sp"
-                    bold: True
-                    color: 0.08, 0.12, 0.22, 1
-            BoxLayout:
-                orientation: "vertical"
-                padding: dp(6)
-                Label:
-                    text: "Break timer"
-                    color: 0.16, 0.18, 0.24, 1
-                    size_hint_y: None
-                    height: dp(20)
-                Label:
-                    text: app.root.live_rest_timer
-                    font_size: "20sp"
-                    bold: True
-                    color: 0.08, 0.12, 0.22, 1
-        WrapLabel:
-            text: app.root.live_current_set_display
-            color: 0.14, 0.16, 0.24, 1
-        WrapLabel:
-            text: app.root.live_instruction
-            color: 0.14, 0.16, 0.26, 1
-        WrapLabel:
-            text: app.root.live_tempo_hint
-            color: 0.12, 0.18, 0.34, 1
-        WrapLabel:
-            text: app.root.live_hint_text
-            color: app.root.live_hint_color
-            bold: True
-        Label:
-            text: "Upcoming: {}".format(app.root.live_upcoming_display)
-            color: 0.16, 0.16, 0.22, 1
-            text_size: self.width, None
-            size_hint_y: None
-            height: self.texture_size[1]
-        GridLayout:
-            cols: 3
-            spacing: dp(8)
-            row_default_height: dp(44)
+            padding: dp(16)
+            spacing: dp(12)
             size_hint_y: None
             height: self.minimum_height
-            Button:
-                text: "Pause" if not app.root.live_paused else "Resume"
-                on_release: app.root.toggle_live_pause()
-            Button:
-                text: "Complete set"
-                on_release: app.root.manual_complete_set()
-            Button:
-                text: "Skip exercise"
-                on_release: app.root.skip_current_exercise()
-            Button:
-                text: "Next exercise"
-                on_release: app.root.manual_next_exercise()
-            Button:
-                text: "End workout"
-                on_release: app.root.end_live_session(early=True)
-            Button:
-                text: "Back to plan"
-                on_release: app.root.go_recommend()
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            GridLayout:
+                cols: 2
+                spacing: dp(8)
+                size_hint_y: None
+                row_default_height: dp(30)
+                height: self.minimum_height
+                Label:
+                    text: app.root.live_progress_display
+                    bold: True
+                    color: 0.1, 0.12, 0.2, 1
+                Label:
+                    text: app.root.live_state_display
+                    color: 0.16, 0.2, 0.35, 1
+            BoxLayout:
+                size_hint_y: None
+                height: dp(38) if app.root.live_signal_text else dp(0)
+                padding: dp(10), dp(6)
+                canvas.before:
+                    Color:
+                        rgba: app.root.live_signal_color if app.root.live_signal_text else (0, 0, 0, 0)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                Label:
+                    text: app.root.live_signal_text
+                    color: 1, 1, 1, 1
+                    bold: True
+                    opacity: 1 if app.root.live_signal_text else 0
+            BoxLayout:
+                orientation: "vertical"
+                padding: dp(12)
+                spacing: dp(6)
+                size_hint_y: None
+                height: dp(210)
+                canvas.before:
+                    Color:
+                        rgba: 0.92, 0.97, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                Label:
+                    text: app.root.live_exercise_title
+                    font_size: "22sp"
+                    bold: True
+                    color: 0.08, 0.12, 0.22, 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                Label:
+                    text: app.root.live_icon_display
+                    color: 0.18, 0.2, 0.32, 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                Label:
+                    text: "Target: {} | Equipment: {}".format(app.root.live_muscle_display, app.root.live_equipment_display)
+                    color: 0.18, 0.18, 0.24, 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                Label:
+                    text: app.root.live_recommendation_display
+                    color: 0.16, 0.2, 0.3, 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                Label:
+                    text: "Planned duration: {}".format(app.root.live_exercise_target_display)
+                    color: 0.14, 0.22, 0.34, 1
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(36)
+                    spacing: dp(8)
+                    Button:
+                        text: "Show details" if not app.root.live_details_expanded else "Hide details"
+                        size_hint_x: None
+                        width: dp(150)
+                        on_release: app.root.toggle_live_details()
+                    Label:
+                        text: "Set: {}".format(app.root.live_current_set_display)
+                        color: 0.16, 0.18, 0.24, 1
+                        text_size: self.size
+                        valign: "middle"
+            BoxLayout:
+                orientation: "vertical"
+                padding: dp(10)
+                spacing: dp(6)
+                size_hint_y: None
+                height: self.minimum_height if app.root.live_details_expanded else dp(0)
+                opacity: 1 if app.root.live_details_expanded else 0
+                canvas.before:
+                    Color:
+                        rgba: (0.95, 0.98, 1, 1) if app.root.live_details_expanded else (0, 0, 0, 0)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                WrapLabel:
+                    text: app.root.live_exercise_description
+                    color: 0.14, 0.16, 0.24, 1
+                WrapLabel:
+                    text: app.root.live_recommendation_display
+                    color: 0.16, 0.2, 0.3, 1
+            GridLayout:
+                cols: 2
+                spacing: dp(8)
+                size_hint_y: None
+                row_default_height: dp(80)
+                height: self.minimum_height
+                canvas.before:
+                    Color:
+                        rgba: 0.94, 0.97, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                BoxLayout:
+                    orientation: "vertical"
+                    padding: dp(6)
+                    Label:
+                        text: "Exercise time"
+                        color: 0.16, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(20)
+                    Label:
+                        text: app.root.live_exercise_timer
+                        font_size: "22sp"
+                        bold: True
+                        color: 0.08, 0.12, 0.22, 1
+                BoxLayout:
+                    orientation: "vertical"
+                    padding: dp(6)
+                    Label:
+                        text: "Set time"
+                        color: 0.16, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(20)
+                    Label:
+                        text: app.root.live_set_timer
+                        font_size: "22sp"
+                        bold: True
+                        color: 0.08, 0.12, 0.22, 1
+                BoxLayout:
+                    orientation: "vertical"
+                    padding: dp(6)
+                    Label:
+                        text: "Break timer"
+                        color: 0.16, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(20)
+                    Label:
+                        text: app.root.live_rest_timer
+                        font_size: "22sp"
+                        bold: True
+                        color: 0.08, 0.12, 0.22, 1
+                BoxLayout:
+                    orientation: "vertical"
+                    padding: dp(6)
+                    Label:
+                        text: "Per-set target"
+                        color: 0.16, 0.18, 0.24, 1
+                        size_hint_y: None
+                        height: dp(20)
+                    Label:
+                        text: app.root.live_set_target_display
+                        font_size: "22sp"
+                        bold: True
+                        color: 0.08, 0.12, 0.22, 1
+            BoxLayout:
+                size_hint_y: None
+                height: dp(50)
+                spacing: dp(8)
+                padding: dp(8)
+                canvas.before:
+                    Color:
+                        rgba: 0.96, 0.98, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                Label:
+                    text: "Break length (s)"
+                    color: 0.16, 0.18, 0.24, 1
+                    size_hint_x: None
+                    width: dp(130)
+                TextInput:
+                    id: live_break_input
+                    text: app.root.live_rest_setting_text
+                    multiline: False
+                    input_filter: "int"
+                    size_hint_x: None
+                    width: dp(90)
+                    on_text_validate: app.root.set_live_rest_seconds(self.text)
+                    on_focus: app.root.set_live_rest_seconds(self.text) if not self.focus else None
+                Label:
+                    text: "Applies after each exercise and when tapping Next."
+                    color: 0.18, 0.2, 0.28, 1
+            InstructionBadge:
+                text: app.root.live_instruction
+            WrapLabel:
+                text: app.root.live_tempo_hint
+                color: 0.12, 0.18, 0.34, 1
+            WrapLabel:
+                text: app.root.live_hint_text
+                color: app.root.live_hint_color
+                bold: True
+            Label:
+                text: "Upcoming: {}".format(app.root.live_upcoming_display)
+                color: 0.16, 0.16, 0.22, 1
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+            GridLayout:
+                cols: 3
+                spacing: dp(8)
+                row_default_height: dp(44)
+                size_hint_y: None
+                height: self.minimum_height
+                Button:
+                    text: "Pause" if not app.root.live_paused else "Resume"
+                    on_release: app.root.toggle_live_pause()
+                Button:
+                    text: "Complete set"
+                    on_release: app.root.manual_complete_set()
+                Button:
+                    text: "Skip exercise"
+                    on_release: app.root.skip_current_exercise()
+                Button:
+                    text: "Next exercise"
+                    on_release: app.root.manual_next_exercise()
+                Button:
+                    text: "End workout"
+                    on_release: app.root.end_live_session(early=True)
+                Button:
+                    text: "Back to plan"
+                    on_release: app.root.go_recommend()
+            Widget:
+                size_hint_y: None
+                height: dp(8)
 
 <HomeScreen>:
     BoxLayout:
@@ -1445,14 +1562,14 @@ KV = """
                 bar_width: dp(6)
                 scroll_type: ['bars', 'content']
                 size_hint_y: None
-                height: dp(400)
+                height: dp(420)
                 RecycleBoxLayout:
-                    default_size: None, None
+                    default_size: None, dp(130)
                     default_size_hint: 1, None
                     size_hint_y: None
                     height: self.minimum_height
                     orientation: "vertical"
-                    spacing: dp(10)
+                    spacing: dp(12)
 
 <RecommendationScreen>:
     BoxLayout:
@@ -1662,43 +1779,52 @@ KV = """
             font_size: "18sp"
             bold: True
             color: 0.1, 0.12, 0.2, 1
-        Widget:
-        NavButton:
-            text: "Home"
             size_hint_x: None
-            width: dp(90)
-            on_release: root.go_home()
-        NavButton:
-            text: "Browse"
-            size_hint_x: None
-            width: dp(90)
-            on_release: root.go_browse()
-        NavButton:
-            text: "Add"
-            size_hint_x: None
-            width: dp(90)
-            on_release: root.go_add()
-        NavButton:
-            text: "Users"
-            size_hint_x: None
-            width: dp(90)
-            on_release: root.go_users()
-        NavButton:
-            text: "History"
-            size_hint_x: None
-            width: dp(90)
-            on_release: root.go_history()
-        NavButton:
-            text: "Recommend"
-            size_hint_x: None
-            width: dp(110)
-            on_release: root.go_recommend()
-        NavButton:
-            text: "Live"
-            size_hint_x: None
-            width: dp(90)
-            disabled: not app.root.live_active
-            on_release: root.go_live()
+            width: self.texture_size[0] + dp(14)
+        ScrollView:
+            do_scroll_y: False
+            bar_width: dp(0)
+            size_hint_x: 1
+            BoxLayout:
+                size_hint_x: None
+                width: self.minimum_width
+                spacing: dp(10)
+                NavButton:
+                    text: "Home"
+                    size_hint_x: None
+                    width: dp(90)
+                    on_release: root.go_home()
+                NavButton:
+                    text: "Browse"
+                    size_hint_x: None
+                    width: dp(90)
+                    on_release: root.go_browse()
+                NavButton:
+                    text: "Add"
+                    size_hint_x: None
+                    width: dp(90)
+                    on_release: root.go_add()
+                NavButton:
+                    text: "Users"
+                    size_hint_x: None
+                    width: dp(90)
+                    on_release: root.go_users()
+                NavButton:
+                    text: "History"
+                    size_hint_x: None
+                    width: dp(90)
+                    on_release: root.go_history()
+                NavButton:
+                    text: "Recommend"
+                    size_hint_x: None
+                    width: dp(110)
+                    on_release: root.go_recommend()
+                NavButton:
+                    text: "Live"
+                    size_hint_x: None
+                    width: dp(90)
+                    disabled: not app.root.live_active
+                    on_release: root.go_live()
 
     ScreenManager:
         id: screen_manager
@@ -2004,6 +2130,11 @@ class RootWidget(BoxLayout):
     live_muscle_display = StringProperty("")
     live_equipment_display = StringProperty("")
     live_recommendation_display = StringProperty("")
+    live_exercise_description = StringProperty("")
+    live_details_expanded = BooleanProperty(False)
+    live_exercise_target_display = StringProperty("—")
+    live_set_target_display = StringProperty("—")
+    live_rest_setting_text = StringProperty("30")
     live_exercise_timer = StringProperty("00:00")
     live_set_timer = StringProperty("00:00")
     live_rest_timer = StringProperty("—")
@@ -2012,6 +2143,8 @@ class RootWidget(BoxLayout):
     live_tempo_hint = StringProperty("")
     live_hint_text = StringProperty("")
     live_hint_color = ListProperty((0.14, 0.4, 0.2, 1))
+    live_signal_text = StringProperty("")
+    live_signal_color = ListProperty((0.16, 0.32, 0.6, 1))
     live_upcoming_display = StringProperty("None")
     summary_duration_display = StringProperty("00:00")
     summary_sets_display = StringProperty("0")
@@ -2052,6 +2185,8 @@ class RootWidget(BoxLayout):
         self._live_total_sets_completed = 0
         self._live_current_logged = False
         self.live_rest_seconds = 30
+        self.live_rest_setting_text = str(int(self.live_rest_seconds))
+        self._signal_clear_event = None
         self._live_phase = "idle"
         self._update_rec_plan_height()
         Clock.schedule_once(self._bootstrap_data, 0)
@@ -3278,6 +3413,7 @@ class RootWidget(BoxLayout):
                 {
                     "name": record["name"],
                     "icon": record.get("icon", ""),
+                    "description": record.get("description", ""),
                     "muscle_group": record.get("muscle_group", ""),
                     "equipment": record.get("equipment", ""),
                     "sets": record.get("sets") or item.get("sets") or 3,
@@ -3501,6 +3637,23 @@ class RootWidget(BoxLayout):
             return float(max(20, reps * 4))
         return 30.0
 
+    def _exercise_expected_duration_seconds(self, exercise: Optional[dict[str, Any]]) -> float:
+        if not exercise:
+            return 0.0
+        sets = exercise.get("sets") or 1
+        per_set = self._compute_set_target_seconds(exercise)
+        total = sets * per_set
+        if sets > 1:
+            total += (sets - 1) * float(self.live_rest_seconds)
+        est_minutes = exercise.get("estimated_minutes")
+        if est_minutes is not None:
+            try:
+                est_seconds = float(est_minutes) * 60
+                total = max(total, est_seconds)
+            except (TypeError, ValueError):
+                pass
+        return max(total, per_set)
+
     def _set_hint(self, message: str, *, color: tuple = (0.14, 0.4, 0.2, 1), clear_after: float = 3.0) -> None:
         self.live_hint_text = message
         self.live_hint_color = color
@@ -3510,6 +3663,22 @@ class RootWidget(BoxLayout):
     def _clear_hint(self, expected: str) -> None:
         if self.live_hint_text == expected:
             self.live_hint_text = ""
+
+    def _flash_signal(self, message: str, color: tuple = (0.16, 0.32, 0.6, 1), duration: float = 2.5) -> None:
+        """Show a transient banner for exercise transitions."""
+        self.live_signal_text = message
+        self.live_signal_color = color
+        if self._signal_clear_event is not None:
+            try:
+                self._signal_clear_event.cancel()
+            except Exception:
+                pass
+        self._signal_clear_event = Clock.schedule_once(lambda *_: self._clear_signal(message), duration)
+
+    def _clear_signal(self, expected: str) -> None:
+        if self.live_signal_text == expected:
+            self.live_signal_text = ""
+        self._signal_clear_event = None
 
     def _record_attempt(self, status: str) -> None:
         """Record the current exercise with a completion status once per exercise."""
@@ -3531,6 +3700,31 @@ class RootWidget(BoxLayout):
         upcoming = [ex["name"] for ex in self.live_exercises[self._live_current_index + 1 :]]
         self.live_upcoming_display = ", ".join(upcoming) if upcoming else "None"
 
+    def toggle_live_details(self) -> None:
+        self.live_details_expanded = not self.live_details_expanded
+
+    def set_live_rest_seconds(self, value: str) -> None:
+        """Allow the user to choose break length while keeping a sane minimum."""
+        raw = (value or "").strip()
+        if not raw:
+            self.live_rest_setting_text = str(int(self.live_rest_seconds))
+            return
+        try:
+            seconds = int(raw)
+            if seconds < 5:
+                raise ValueError
+        except ValueError:
+            self._set_hint("Break length must be 5 seconds or more.", color=(0.65, 0.3, 0.18, 1))
+            self.live_rest_setting_text = str(int(self.live_rest_seconds))
+            return
+        self.live_rest_seconds = seconds
+        if self._live_phase in ("rest", "between_exercises"):
+            self._live_rest_remaining = float(seconds)
+            self.live_rest_timer = self._format_time(self._live_rest_remaining)
+        self.live_rest_setting_text = str(seconds)
+        self._set_hint(f"Break length set to {seconds}s.", color=(0.18, 0.4, 0.2, 1))
+        self._update_live_labels()
+
     def _update_live_labels(self) -> None:
         exercise = self._current_live_exercise()
         total_exercises = len(self.live_exercises)
@@ -3545,6 +3739,12 @@ class RootWidget(BoxLayout):
             self.live_current_set_display = ""
             self.live_state_display = "Not started"
             self.live_upcoming_display = "None"
+            self.live_exercise_description = ""
+            self.live_exercise_target_display = "—"
+            self.live_set_target_display = "—"
+            self.live_exercise_timer = "00:00"
+            self.live_set_timer = "00:00"
+            self.live_rest_timer = "—"
             return
         total_sets = exercise.get("sets") or 1
         self._live_total_sets = total_sets
@@ -3554,12 +3754,38 @@ class RootWidget(BoxLayout):
         self.live_muscle_display = exercise.get("muscle_group", "")
         self.live_equipment_display = exercise.get("equipment", "")
         self.live_recommendation_display = exercise.get("recommendation", "")
-        self.live_current_set_display = f"Set {self._live_current_set} of {total_sets}"
-        self.live_instruction = self._build_instruction(exercise)
-        self.live_state_display = f"{'Resting' if self._live_phase == 'rest' else 'In set'} (Set {self._live_current_set}/{total_sets})"
+        self.live_exercise_description = exercise.get("description", "")
+        expected_seconds = self._exercise_expected_duration_seconds(exercise)
+        self.live_exercise_target_display = f"~{self._format_time(expected_seconds)}" if expected_seconds else "—"
+        set_target = self._live_set_target_seconds or self._compute_set_target_seconds(exercise)
+        self.live_set_target_display = self._format_time(set_target) if set_target else "—"
+        if self._live_phase == "between_exercises":
+            next_name = ""
+            if self._live_current_index + 1 < len(self.live_exercises):
+                next_name = self.live_exercises[self._live_current_index + 1].get("name", "Next exercise")
+            self.live_instruction = f"Rest, then start {next_name or 'the next exercise'}"
+            self.live_current_set_display = f"Completed {total_sets} set(s)."
+        else:
+            self.live_instruction = self._build_instruction(exercise)
+            self.live_current_set_display = f"Set {self._live_current_set} of {total_sets}"
+        if self._live_phase == "rest":
+            phase_label = "Resting between sets"
+        elif self._live_phase == "between_exercises":
+            phase_label = "Resting before next exercise"
+        elif self._live_phase == "set":
+            phase_label = "In set"
+        else:
+            phase_label = "Not started"
+        if self._live_phase == "between_exercises":
+            self.live_state_display = phase_label
+        else:
+            self.live_state_display = f"{phase_label} (Set {self._live_current_set}/{total_sets})"
         self.live_exercise_timer = self._format_time(self._live_exercise_elapsed)
         self.live_set_timer = self._format_time(self._live_set_elapsed)
-        self.live_rest_timer = self._format_time(self._live_rest_remaining) if self._live_phase == "rest" else "—"
+        if self._live_phase in ("rest", "between_exercises"):
+            self.live_rest_timer = self._format_time(self._live_rest_remaining)
+        else:
+            self.live_rest_timer = "—"
         self._update_live_upcoming()
         self._update_tempo_hint()
 
@@ -3605,8 +3831,11 @@ class RootWidget(BoxLayout):
         self.live_paused = False
         self.live_active = True
         self._live_session_started_at = datetime.now()
+        self.live_details_expanded = False
+        self.live_rest_setting_text = str(int(self.live_rest_seconds))
         self._update_live_labels()
         self._set_hint("Session started. Begin your first set!", color=(0.18, 0.4, 0.2, 1))
+        self._flash_signal("Session started", color=(0.16, 0.32, 0.6, 1))
         self._start_live_clock()
 
     def _update_tempo_hint(self) -> None:
@@ -3615,6 +3844,9 @@ class RootWidget(BoxLayout):
             self.live_tempo_hint = ""
             return
         reps = exercise.get("reps")
+        if self._live_phase == "between_exercises":
+            self.live_tempo_hint = "Rest up — next exercise will start after the break."
+            return
         if self._live_phase == "rest":
             self.live_tempo_hint = "Rest and breathe. Next set starts soon."
             return
@@ -3644,13 +3876,17 @@ class RootWidget(BoxLayout):
         exercise = self._current_live_exercise()
         if not exercise:
             return
-        if self._live_phase == "rest":
+        if self._live_phase in ("rest", "between_exercises"):
             self._live_rest_remaining = max(0.0, self._live_rest_remaining - dt)
-            self._live_exercise_elapsed += dt
+            if self._live_phase == "rest":
+                self._live_exercise_elapsed += dt
+                self.live_exercise_timer = self._format_time(self._live_exercise_elapsed)
             self.live_rest_timer = self._format_time(self._live_rest_remaining)
-            self.live_exercise_timer = self._format_time(self._live_exercise_elapsed)
             if self._live_rest_remaining <= 0:
-                self._start_next_set()
+                if self._live_phase == "between_exercises":
+                    self._advance_exercise(skipped=False, record_status=False)
+                else:
+                    self._start_next_set()
             return
         self._live_exercise_elapsed += dt
         self._live_set_elapsed += dt
@@ -3687,7 +3923,7 @@ class RootWidget(BoxLayout):
         self._live_total_sets_completed += 1
         total_sets = exercise.get("sets") or 1
         if self._live_current_set >= total_sets:
-            self._advance_exercise()
+            self._start_between_exercise_rest(skipped=False)
             return
         self._live_phase = "rest"
         self._live_rest_remaining = float(self.live_rest_seconds)
@@ -3697,8 +3933,31 @@ class RootWidget(BoxLayout):
         self._update_tempo_hint()
         self._update_live_labels()
 
-    def _advance_exercise(self, *, skipped: bool = False) -> None:
-        self._record_attempt("skipped" if skipped else "completed")
+    def _start_between_exercise_rest(self, *, skipped: bool) -> None:
+        if not self.live_active:
+            return
+        exercise = self._current_live_exercise()
+        if not exercise:
+            return
+        at_last_exercise = self._live_current_index >= len(self.live_exercises) - 1
+        status = "skipped" if skipped else "completed"
+        self._record_attempt(status)
+        if at_last_exercise:
+            self._flash_signal("Last exercise finished.", color=(0.18, 0.5, 0.3, 1))
+            self.end_live_session(early=skipped)
+            return
+        self._live_phase = "between_exercises"
+        self._live_rest_remaining = float(self.live_rest_seconds)
+        self.live_state_display = "Resting before next exercise"
+        self.live_rest_timer = self._format_time(self._live_rest_remaining)
+        self._set_hint("Exercise finished. Resting before the next one.", color=(0.18, 0.4, 0.2, 1))
+        self._flash_signal("Exercise complete — rest break", color=(0.85, 0.55, 0.2, 1))
+        self._update_tempo_hint()
+        self._update_live_labels()
+
+    def _advance_exercise(self, *, skipped: bool = False, record_status: bool = True) -> None:
+        if record_status:
+            self._record_attempt("skipped" if skipped else "completed")
         if self._live_current_index >= len(self.live_exercises) - 1:
             self.end_live_session(early=skipped)
             return
@@ -3713,19 +3972,20 @@ class RootWidget(BoxLayout):
         self._update_live_labels()
         verb = "Skipped" if skipped else "Next exercise"
         self._set_hint(f"{verb}: {self.live_exercise_title}", color=(0.25, 0.32, 0.65, 1))
+        self._flash_signal(f"Starting {self.live_exercise_title}", color=(0.16, 0.32, 0.6, 1))
 
     def skip_current_exercise(self) -> None:
         if not self.live_active:
             return
-        self._advance_exercise(skipped=True)
+        self._start_between_exercise_rest(skipped=True)
 
     def manual_next_exercise(self) -> None:
         if not self.live_active:
             return
-        self._advance_exercise(skipped=False)
+        self._start_between_exercise_rest(skipped=False)
 
     def manual_complete_set(self) -> None:
-        if not self.live_active or self._live_phase == "rest":
+        if not self.live_active or self._live_phase in ("rest", "between_exercises"):
             return
         self._complete_current_set(auto=False)
 
@@ -3737,7 +3997,12 @@ class RootWidget(BoxLayout):
             self.live_state_display = "Paused"
             self._set_hint("Paused – timers stopped.", color=(0.65, 0.3, 0.18, 1))
         else:
-            self.live_state_display = "Resting" if self._live_phase == "rest" else "In set"
+            if self._live_phase == "rest":
+                self.live_state_display = "Resting"
+            elif self._live_phase == "between_exercises":
+                self.live_state_display = "Resting before next exercise"
+            else:
+                self.live_state_display = "In set"
             self._set_hint("Resumed.", color=(0.18, 0.4, 0.2, 1))
 
     def end_live_session(self, *, early: bool = False) -> None:
@@ -3768,6 +4033,7 @@ class RootWidget(BoxLayout):
         self.live_state_display = status
         self.live_progress_display = summary
         self._set_hint(summary, color=(0.18, 0.4, 0.2, 1), clear_after=0)
+        self.live_signal_text = ""
         self._prepare_summary(duration_seconds, performed_at, attempts)
         self._log_live_workout(duration_seconds, performed_at, attempts)
         try:
