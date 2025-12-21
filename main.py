@@ -33,6 +33,15 @@ KV = """
     background_color: 0.18, 0.4, 0.85, 1
     color: 1, 1, 1, 1
 
+<AppSpinnerOption@SpinnerOption>:
+    background_normal: ""
+    background_down: ""
+    background_color: 0.92, 0.96, 1, 1
+    color: 0.32, 0.44, 0.62, 1
+
+<Spinner>:
+    option_cls: "AppSpinnerOption"
+
 <FilterLabel@Label>:
     color: 0.2, 0.2, 0.25, 1
     font_size: "13sp"
