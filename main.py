@@ -176,7 +176,7 @@ KV = """
     padding: dp(12)
     spacing: dp(6)
     size_hint_y: None
-    height: self.minimum_height
+    height: dp(220)
     canvas.before:
         Color:
             rgba: 0.9, 0.95, 1, 1
