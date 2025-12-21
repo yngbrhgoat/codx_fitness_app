@@ -12,9 +12,10 @@ from kivy.config import Config
 Config.remove_option("input", "%(name)s")
 
 from kivy.app import App
+from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.lang import Builder
-from kivy.properties import BooleanProperty, ListProperty, StringProperty
+from kivy.properties import BooleanProperty, ListProperty, NumericProperty, StringProperty
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -41,6 +42,10 @@ KV = """
 
 <Spinner>:
     option_cls: "AppSpinnerOption"
+    on_text: app.root.confirm_value_input(self)
+
+<TextInput>:
+    on_focus: app.root.confirm_value_input(self) if not self.focus else None
 
 <FilterLabel@Label>:
     color: 0.2, 0.2, 0.25, 1
@@ -1442,7 +1447,7 @@ KV = """
                 size_hint_y: None
                 height: dp(400)
                 RecycleBoxLayout:
-                    default_size: None, dp(120)
+                    default_size: None, None
                     default_size_hint: 1, None
                     size_hint_y: None
                     height: self.minimum_height
@@ -1506,8 +1511,7 @@ KV = """
             viewclass: "RecommendationCard"
             bar_width: dp(6)
             scroll_type: ['bars', 'content']
-            size_hint_y: None
-            height: dp(320)
+            size_hint_y: 1
             RecycleGridLayout:
                 cols: 2
                 default_size: None, dp(200)
@@ -1526,7 +1530,8 @@ KV = """
             viewclass: "PlanItem"
             bar_width: dp(6)
             scroll_type: ['bars', 'content']
-            size_hint_y: 0.35
+            size_hint_y: None
+            height: app.root.rec_plan_height
             RecycleBoxLayout:
                 default_size: None, dp(70)
                 default_size_hint: 1, None
@@ -1988,6 +1993,7 @@ class RootWidget(BoxLayout):
     rec_recommendations = ListProperty()
     rec_plan = ListProperty()
     rec_total_minutes = StringProperty("0")
+    rec_plan_height = NumericProperty(dp(70))
     live_active = BooleanProperty(False)
     live_paused = BooleanProperty(False)
     live_exercises = ListProperty()
@@ -2047,6 +2053,7 @@ class RootWidget(BoxLayout):
         self._live_current_logged = False
         self.live_rest_seconds = 30
         self._live_phase = "idle"
+        self._update_rec_plan_height()
         Clock.schedule_once(self._bootstrap_data, 0)
 
     def _pretty_goal(self, goal: str) -> str:
@@ -2077,6 +2084,14 @@ class RootWidget(BoxLayout):
         if self.goal_choice_options:
             return self.goal_choice_options[0]
         return ""
+
+    def _default_workout_goal_label(self) -> str:
+        if self.user_profile_goal and self.user_profile_goal in self.goal_choice_options:
+            return self.user_profile_goal
+        return "No goal"
+
+    def on_user_profile_goal(self, *_: Any) -> None:
+        self._sync_recommendation_goal()
 
     def _bootstrap_data(self, *_: Any) -> None:
         self.records = self._load_records()
@@ -2180,6 +2195,7 @@ class RootWidget(BoxLayout):
             self.workout_goal_spinner_text = "No goal"
         if self.register_goal_spinner_text not in self.user_goal_options:
             self.register_goal_spinner_text = "No goal"
+        self._sync_recommendation_goal()
         self._update_filter_colors()
 
     def _resolve_filter_colors(
@@ -2223,6 +2239,29 @@ class RootWidget(BoxLayout):
             inactive_text,
             active_text,
         )
+
+    def _sync_recommendation_goal(self) -> None:
+        if self.user_profile_goal and self.user_profile_goal in self.goal_choice_options:
+            self.rec_goal_spinner_text = self.user_profile_goal
+        elif self.goal_choice_options and self.rec_goal_spinner_text not in self.goal_choice_options:
+            self.rec_goal_spinner_text = self.goal_choice_options[0]
+
+    def on_rec_plan(self, *_: Any) -> None:
+        self._update_rec_plan_height()
+
+    def _compute_rec_plan_height(self) -> float:
+        min_height = dp(70)
+        max_height = dp(240)
+        item_height = dp(70)
+        spacing = dp(6)
+        count = len(self.rec_plan)
+        if count <= 0:
+            return min_height
+        total = count * item_height + max(0, count - 1) * spacing
+        return min(max_height, max(min_height, total))
+
+    def _update_rec_plan_height(self) -> None:
+        self.rec_plan_height = self._compute_rec_plan_height()
 
     def _refresh_history_exercise_filtered_options(self) -> None:
         query = self.history_exercise_filter.strip().lower()
@@ -2279,11 +2318,7 @@ class RootWidget(BoxLayout):
     def _workout_form_ids(self) -> Optional[Any]:
         if self._workout_log_modal is not None:
             return self._workout_log_modal.ids
-        try:
-            ids = self._history_screen().ids
-        except Exception:
-            return None
-        return ids if "workout_date_input" in ids else None
+        return None
 
     def _prefill_workout_date(self) -> None:
         """Populate the workout date field with today's date if available."""
@@ -2293,6 +2328,59 @@ class RootWidget(BoxLayout):
         date_field = ids.get("workout_date_input")
         if date_field and not date_field.text:
             date_field.text = date.today().isoformat()
+
+    def _flash_color(
+        self,
+        base: tuple[float, float, float, float],
+        text: tuple[float, float, float, float],
+    ) -> tuple[float, float, float, float]:
+        luma = 0.2126 * text[0] + 0.7152 * text[1] + 0.0722 * text[2]
+        factor = 0.18
+        if luma > 0.6:
+            return (
+                max(0.0, base[0] * (1 - factor)),
+                max(0.0, base[1] * (1 - factor)),
+                max(0.0, base[2] * (1 - factor)),
+                base[3],
+            )
+        return (
+            min(1.0, base[0] + (1 - base[0]) * factor),
+            min(1.0, base[1] + (1 - base[1]) * factor),
+            min(1.0, base[2] + (1 - base[2]) * factor),
+            base[3],
+        )
+
+    def _animate_input_feedback(self, widget: Any) -> None:
+        if not widget or not hasattr(widget, "background_color"):
+            return
+        try:
+            Animation.cancel_all(widget, "background_color")
+        except Exception:
+            pass
+        base_color = tuple(getattr(widget, "background_color", (1, 1, 1, 1)))
+        text_color = tuple(getattr(widget, "color", (0, 0, 0, 1)))
+        flash_color = self._flash_color(base_color, text_color)
+        (Animation(background_color=flash_color, duration=0.08, t="out_quad")
+         + Animation(background_color=base_color, duration=0.25, t="out_quad")).start(widget)
+
+    def confirm_value_input(self, widget: Any) -> None:
+        if not widget or not hasattr(widget, "text"):
+            return
+        current = getattr(widget, "text", "")
+        if not getattr(widget, "get_root_window", None) or not widget.get_root_window():
+            setattr(widget, "_last_confirmed_value", current)
+            return
+        last_value = getattr(widget, "_last_confirmed_value", None)
+        if last_value is None and hasattr(widget, "values"):
+            setattr(widget, "_last_confirmed_value", current)
+            return
+        if last_value is None and current == "":
+            setattr(widget, "_last_confirmed_value", current)
+            return
+        if last_value == current:
+            return
+        setattr(widget, "_last_confirmed_value", current)
+        Clock.schedule_once(lambda *_: self._animate_input_feedback(widget), 0)
 
     def on_goal_change(self, value: str) -> None:
         self.filter_goal = "All" if value == "All goals" else self._goal_label_map.get(value, "All")
@@ -2511,6 +2599,7 @@ class RootWidget(BoxLayout):
         self.current_user_display = display_name
         self._load_users()
         self._set_user_profile_status("Profile saved.")
+        self._sync_recommendation_goal()
         return True
 
     def on_user_selected(self, username: str) -> None:
@@ -2576,10 +2665,32 @@ class RootWidget(BoxLayout):
     def _set_date_input(self, target_input: Any, selected: date) -> None:
         if target_input:
             target_input.text = selected.isoformat()
+            self.confirm_value_input(target_input)
 
     def _set_history_status(self, message: str, *, error: bool = False) -> None:
         self.history_status_text = message
         self.history_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+
+    def _reset_history_exercise_picker(self, ids: Optional[Any] = None) -> None:
+        self.history_exercise_spinner_text = "Select exercise"
+        self.history_exercise_filter = ""
+        self._refresh_history_exercise_filtered_options()
+        form_ids = ids or self._workout_form_ids()
+        if form_ids and "history_exercise_filter_input" in form_ids:
+            form_ids.history_exercise_filter_input.text = ""
+
+    def _reset_workout_log_form(self, *, clear_status: bool = True) -> None:
+        ids = self._workout_form_ids()
+        if not ids:
+            return
+        ids.duration_input.text = ""
+        ids.exercises_input.text = ""
+        ids.total_sets_input.text = ""
+        self._reset_history_exercise_picker(ids)
+        self.workout_goal_spinner_text = self._default_workout_goal_label()
+        if clear_status:
+            self._set_history_status("")
+        self._prefill_workout_date()
 
     def _clear_workout_log_modal(self, *_: Any) -> None:
         self._workout_log_modal = None
@@ -2598,17 +2709,8 @@ class RootWidget(BoxLayout):
         modal = WorkoutLogModal()
         modal.bind(on_dismiss=self._clear_workout_log_modal)
         self._workout_log_modal = modal
-        self.history_exercise_spinner_text = "Select exercise"
-        self.history_exercise_filter = ""
-        self._refresh_history_exercise_filtered_options()
-        ids = self._workout_form_ids()
-        if ids and "history_exercise_filter_input" in ids:
-            ids.history_exercise_filter_input.text = ""
-        if self.user_profile_goal and self.user_profile_goal in self.goal_choice_options:
-            self.workout_goal_spinner_text = self.user_profile_goal
-        self._set_history_status("")
+        self._reset_workout_log_form(clear_status=True)
         modal.open()
-        self._prefill_workout_date()
 
     def _dismiss_workout_log_modal(self) -> None:
         if self._workout_log_modal is None:
@@ -2665,6 +2767,7 @@ class RootWidget(BoxLayout):
             ids.exercises_input.text = ids.exercises_input.text.rstrip() + "\n" + selected
         else:
             ids.exercises_input.text = selected
+        self.confirm_value_input(ids.exercises_input)
         self._set_history_status(f"Added {selected}.")
         self.history_exercise_spinner_text = "Select exercise"
 
@@ -2809,12 +2912,7 @@ class RootWidget(BoxLayout):
             return
 
         self._set_history_status("Workout saved.")
-        ids.duration_input.text = ""
-        ids.exercises_input.text = ""
-        ids.total_sets_input.text = ""
-        self.workout_goal_spinner_text = "No goal"
-        self.history_exercise_spinner_text = "Select exercise"
-        self._prefill_workout_date()
+        self._reset_workout_log_form(clear_status=False)
         self._load_history()
         self._dismiss_workout_log_modal()
 
