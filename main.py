@@ -37,7 +37,7 @@ KV = """
     background_normal: ""
     background_down: ""
     background_color: 0.92, 0.96, 1, 1
-    color: 0.32, 0.44, 0.62, 1
+    color: 0, 0, 0, 1
 
 <Spinner>:
     option_cls: "AppSpinnerOption"
