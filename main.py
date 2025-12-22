@@ -64,6 +64,56 @@ KV = """
     halign: "left"
     valign: "middle"
 
+<StatusBanner@BoxLayout>:
+    text: ""
+    status_color: 0.14, 0.4, 0.2, 1
+    is_error: False
+    size_hint_y: None
+    height: self.minimum_height if self.text else 0
+    opacity: 1 if self.text else 0
+    padding: dp(10), dp(8)
+    spacing: dp(8)
+    canvas.before:
+        Color:
+            rgba: (self.status_color[0], self.status_color[1], self.status_color[2], 0.14) if self.text else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8,]
+    Label:
+        text: "!" if root.is_error else "i"
+        color: root.status_color
+        bold: True
+        size_hint_x: None
+        width: dp(18)
+        valign: "middle"
+        text_size: self.size
+    WrapLabel:
+        text: root.text
+        color: root.status_color
+        bold: True if root.is_error else False
+        font_size: "16sp" if root.is_error else "15sp"
+
+<EmptyStateCard@BoxLayout>:
+    text: ""
+    size_hint_y: None
+    height: self.minimum_height if self.text else 0
+    opacity: 1 if self.text else 0
+    padding: dp(14)
+    canvas.before:
+        Color:
+            rgba: 0.98, 0.96, 0.9, 1 if self.text else 0
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10,]
+    WrapLabel:
+        text: root.text
+        color: 0.35, 0.28, 0.2, 1
+        font_size: "15sp"
+        bold: True
+        halign: "center"
+
 <InstructionBadge@Label>:
     text_size: self.width - dp(20), None
     size_hint_y: None
@@ -1244,6 +1294,8 @@ KV = """
                     background_down: ""
                     background_color: app.root.filter_equipment_color
                     color: app.root.filter_equipment_text_color
+        EmptyStateCard:
+            text: "No exercise currently available for these filters." if app.root.browse_empty else ""
         RecycleView:
             id: exercise_list
             viewclass: "ExerciseCard"
@@ -1768,9 +1820,10 @@ KV = """
             Button:
                 text: "Generate recommendations"
                 on_release: app.root.handle_generate_recommendations()
-        WrapLabel:
+        StatusBanner:
             text: app.root.rec_status_text
-            color: app.root.rec_status_color
+            status_color: app.root.rec_status_color
+            is_error: app.root.rec_status_is_error
         Label:
             text: "Recommended exercises"
             bold: True
@@ -2279,12 +2332,14 @@ class RootWidget(BoxLayout):
     stats_top_exercise = StringProperty("—")
     rec_status_text = StringProperty("")
     rec_status_color = ListProperty((0.14, 0.4, 0.2, 1))
+    rec_status_is_error = BooleanProperty(False)
     rec_goal_spinner_text = StringProperty("")
     rec_max_minutes_text = StringProperty("30")
     rec_recommendations = ListProperty()
     rec_plan = ListProperty()
     rec_total_minutes = StringProperty("0")
     rec_plan_height = NumericProperty(dp(70))
+    browse_empty = BooleanProperty(False)
     live_active = BooleanProperty(False)
     live_paused = BooleanProperty(False)
     live_started = BooleanProperty(False)
@@ -2873,6 +2928,7 @@ class RootWidget(BoxLayout):
         exercise_list.refresh_from_data()
         exercise_list.data = filtered
         exercise_list.refresh_from_data()
+        self.browse_empty = not filtered
 
     def _load_users(self) -> None:
         with exercise_database.get_connection() as conn:
@@ -3359,6 +3415,7 @@ class RootWidget(BoxLayout):
     def _set_rec_status(self, message: str, *, error: bool = False) -> None:
         self.rec_status_text = message
         self.rec_status_color = (0.65, 0.16, 0.16, 1) if error else (0.14, 0.4, 0.2, 1)
+        self.rec_status_is_error = error
 
     def _plan_goal_label(self) -> str:
         labels = {item.get("goal_label") for item in self.rec_plan if item.get("goal_label")}
