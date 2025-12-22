@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fittrainer"
+version = "0.1.0"
+description = "FitTrainer – a Kivy desktop training app with exercise database, recommendations, and live mode."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Lars Hoffmann" }
+]
+dependencies = [
+  "kivy>=2.3.0",
+]
+keywords = ["fitness", "kivy", "desktop", "exercise", "sqlite"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.0",
+]
+
+[tool.setuptools]
+py-modules = ["main", "exercise_database"]
