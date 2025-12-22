@@ -1567,11 +1567,16 @@ KV = """
                 padding: dp(12), 0, dp(12), 0
                 Button:
                     text: "Clear filter"
+                    size_hint_x: None
+                    width: dp(150)
                     on_release: app.root.clear_history_filter()
                 Button:
                     text: "Apply filter"
+                    size_hint_x: None
+                    width: dp(150)
                     on_release: app.root.apply_history_filter()
             BoxLayout:
+                orientation: "vertical"
                 size_hint_y: None
                 height: self.minimum_height
                 padding: dp(12)
@@ -1583,45 +1588,40 @@ KV = """
                         pos: self.pos
                         size: self.size
                         radius: [10,]
-                BoxLayout:
-                    orientation: "vertical"
-                    spacing: dp(4)
+                Label:
+                    text: "Stats"
+                    bold: True
+                    font_size: "16sp"
+                    color: 0.12, 0.14, 0.22, 1
                     size_hint_y: None
-                    height: self.minimum_height
-                    Label:
-                        text: "Stats"
-                        bold: True
-                        font_size: "16sp"
-                        color: 0.12, 0.14, 0.22, 1
-                        size_hint_y: None
-                        height: dp(22)
-                    Label:
-                        text: "Total workouts: [b]{}[/b]".format(app.root.stats_total_workouts)
-                        markup: True
-                        font_size: "15sp"
-                        color: 0.16, 0.18, 0.26, 1
-                        text_size: self.width, None
-                        halign: "left"
-                        size_hint_y: None
-                        height: dp(20)
-                    Label:
-                        text: "Total time: [b]{} min[/b]".format(app.root.stats_total_minutes)
-                        markup: True
-                        font_size: "15sp"
-                        color: 0.16, 0.18, 0.26, 1
-                        text_size: self.width, None
-                        halign: "left"
-                        size_hint_y: None
-                        height: dp(20)
-                    Label:
-                        text: "Top exercise: [b]{}[/b]".format(app.root.stats_top_exercise)
-                        markup: True
-                        font_size: "15sp"
-                        color: 0.16, 0.18, 0.26, 1
-                        text_size: self.width, None
-                        halign: "left"
-                        size_hint_y: None
-                        height: dp(20)
+                    height: dp(22)
+                Label:
+                    text: "Total workouts: [b]{}[/b]".format(app.root.stats_total_workouts)
+                    markup: True
+                    font_size: "15sp"
+                    color: 0.16, 0.18, 0.26, 1
+                    text_size: self.width, None
+                    halign: "left"
+                    size_hint_y: None
+                    height: dp(20)
+                Label:
+                    text: "Total time: [b]{} min[/b]".format(app.root.stats_total_minutes)
+                    markup: True
+                    font_size: "15sp"
+                    color: 0.16, 0.18, 0.26, 1
+                    text_size: self.width, None
+                    halign: "left"
+                    size_hint_y: None
+                    height: dp(20)
+                Label:
+                    text: "Top exercise: [b]{}[/b]".format(app.root.stats_top_exercise)
+                    markup: True
+                    font_size: "15sp"
+                    color: 0.16, 0.18, 0.26, 1
+                    text_size: self.width, None
+                    halign: "left"
+                    size_hint_y: None
+                    height: dp(20)
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
@@ -1629,9 +1629,13 @@ KV = """
                 padding: dp(12), 0, dp(12), 0
                 Button:
                     text: "Log a completed workout"
+                    size_hint_x: None
+                    width: dp(220)
                     on_release: app.root.open_workout_log_modal()
                 Button:
                     text: "Refresh history"
+                    size_hint_x: None
+                    width: dp(180)
                     on_release: app.root._load_history()
             WrapLabel:
                 text: app.root.history_status_text
