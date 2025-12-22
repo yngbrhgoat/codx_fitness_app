@@ -34,9 +34,9 @@ class RecommendationLogicTests(unittest.TestCase):
         sets_only = RootWidget._estimate_minutes(dummy, {"sets": 3})
         fallback = RootWidget._estimate_minutes(dummy, {})
 
-        self.assertEqual(time_first, 3)  # ceil(125s)
-        self.assertEqual(volume_based, 2)  # 3*10*4 = 120s
-        self.assertEqual(sets_only, 2)  # 3*30s default
+        self.assertEqual(time_first, 5)  # 2 * 125s + rest
+        self.assertEqual(volume_based, 3)  # includes rest between sets
+        self.assertEqual(sets_only, 3)  # includes rest between sets
         self.assertEqual(fallback, 5)
 
     def test_completion_percentage_clamped_and_rounded(self) -> None:
@@ -168,6 +168,16 @@ class ParsingHelperTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             RootWidget._parse_optional_int(dummy, "abc")
 
+    def test_normalize_equipment_includes_barbell(self) -> None:
+        items = exercise_database.normalize_equipment_list("Barbell, plates")
+        self.assertIn("Barbell", items)
+
+    def test_normalize_muscle_groups_expands_posterior_chain(self) -> None:
+        items = exercise_database.normalize_muscle_group_list("Posterior chain")
+        self.assertIn("Back", items)
+        self.assertIn("Legs", items)
+        self.assertIn("Posterior Chain", items)
+
 
 class RegressionGuardTests(unittest.TestCase):
     def test_validate_history_exercises_blocks_unknown(self) -> None:
@@ -265,6 +275,8 @@ class RegressionGuardTests(unittest.TestCase):
         stub._recommend_screen = lambda: rec_screen
         stub._set_rec_status = lambda *args, **kwargs: None
         stub._estimate_minutes = MethodType(RootWidget._estimate_minutes, stub)
+        stub._estimate_exercise_seconds = MethodType(RootWidget._estimate_exercise_seconds, stub)
+        stub._minutes_from_seconds = MethodType(RootWidget._minutes_from_seconds, stub)
         stub._score_recommendation = MethodType(RootWidget._score_recommendation, stub)
         stub._plan_goal_label = MethodType(RootWidget._plan_goal_label, stub)
 

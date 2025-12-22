@@ -5,7 +5,7 @@ import sqlite3
 from datetime import date, datetime
 from functools import partial
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from kivy.config import Config
 
@@ -2369,12 +2369,14 @@ class RootWidget(BoxLayout):
     def _pretty_goal(self, goal: str) -> str:
         return goal.replace("_", " ").title()
 
-    def _normalize_muscle_group(self, muscle_group: str) -> str:
-        replacements = {
-            "Chest, shoulders, triceps": "Chest",
-        }
-        cleaned = muscle_group.strip()
-        return replacements.get(cleaned, cleaned)
+    def _normalize_equipment_items(self, equipment: str) -> list[str]:
+        return exercise_database.normalize_equipment_list(equipment)
+
+    def _normalize_muscle_groups(self, muscle_group: str) -> list[str]:
+        return exercise_database.normalize_muscle_group_list(muscle_group)
+
+    def _format_tag_display(self, items: Sequence[str]) -> str:
+        return exercise_database.format_tag_list(items)
 
     def _normalize_icon_key(self, value: str) -> str:
         return "".join(ch.lower() for ch in value if ch.isalnum())
@@ -2505,7 +2507,10 @@ class RootWidget(BoxLayout):
         ) in rows:
             if not name or not description:
                 continue
-            muscle_group = self._normalize_muscle_group(muscle_group)
+            muscle_items = self._normalize_muscle_groups(muscle_group)
+            equipment_items = self._normalize_equipment_items(equipment)
+            muscle_display = self._format_tag_display(muscle_items) or muscle_group
+            equipment_display = self._format_tag_display(equipment_items) or equipment
             recommendation_parts = []
             if sets is not None and reps is not None:
                 recommendation_parts.append(f"{sets} sets x {reps} reps")
@@ -2524,8 +2529,10 @@ class RootWidget(BoxLayout):
                     "icon": icon_value,
                     "icon_source": icon_source,
                     "description": description,
-                    "equipment": equipment,
-                    "muscle_group": muscle_group,
+                    "equipment": equipment_display,
+                    "equipment_items": set(equipment_items),
+                    "muscle_group": muscle_display,
+                    "muscle_groups": set(muscle_items),
                     "goal": goal,
                     "goal_label": self._pretty_goal(goal),
                     "suitability_display": f"{rating}/10",
@@ -2539,10 +2546,14 @@ class RootWidget(BoxLayout):
         return records
 
     def _update_filter_options(self) -> None:
-        muscle_choices = sorted({r["muscle_group"] for r in self.records})
-        equipment_choices = sorted({r["equipment"] for r in self.records})
-        if "Dumbbells" not in equipment_choices:
-            equipment_choices.append("Dumbbells")
+        muscle_choices = sorted(
+            {item for record in self.records for item in record.get("muscle_groups", set())}
+        )
+        equipment_choices = sorted(
+            {item for record in self.records for item in record.get("equipment_items", set())}
+        )
+        if "Dumbbell" not in equipment_choices:
+            equipment_choices.append("Dumbbell")
         self.muscle_choice_options = muscle_choices
         self.muscle_choice_display = ", ".join(muscle_choices) if muscle_choices else "No known groups yet."
         if not self.add_muscle_spinner_text and muscle_choices:
@@ -2621,6 +2632,26 @@ class RootWidget(BoxLayout):
             inactive_text,
             active_text,
         )
+
+    def _normalize_filter_selection(self, selection: Any) -> set[str]:
+        if not selection or selection == "All":
+            return set()
+        if isinstance(selection, (list, tuple, set)):
+            return {item for item in selection if item and item != "All"}
+        return {str(selection)}
+
+    def _record_matches_tag_filters(self, record: dict[str, Any]) -> bool:
+        selected_muscles = self._normalize_filter_selection(self.filter_muscle_group)
+        if selected_muscles:
+            record_muscles = set(record.get("muscle_groups") or [])
+            if not selected_muscles.intersection(record_muscles):
+                return False
+        selected_equipment = self._normalize_filter_selection(self.filter_equipment)
+        if selected_equipment:
+            record_equipment = set(record.get("equipment_items") or [])
+            if not selected_equipment.intersection(record_equipment):
+                return False
+        return True
 
     def _sync_recommendation_goal(self) -> None:
         if self.user_profile_goal and self.user_profile_goal in self.goal_choice_options:
@@ -2790,9 +2821,7 @@ class RootWidget(BoxLayout):
             for record in self.records:
                 if not record.get("name") or not record.get("description"):
                     continue
-                if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
-                    continue
-                if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
+                if not self._record_matches_tag_filters(record):
                     continue
                 existing = grouped.get(record["name"])
                 if not existing:
@@ -2823,9 +2852,7 @@ class RootWidget(BoxLayout):
                     continue
                 if record["goal"] != self.filter_goal:
                     continue
-                if self.filter_muscle_group != "All" and record["muscle_group"] != self.filter_muscle_group:
-                    continue
-                if self.filter_equipment != "All" and record["equipment"] != self.filter_equipment:
+                if not self._record_matches_tag_filters(record):
                     continue
                 suitability_display = record["suitability_display"]
                 filtered.append(
@@ -3341,30 +3368,74 @@ class RootWidget(BoxLayout):
             return labels.pop()
         return "Multiple goals"
 
-    def _estimate_minutes(self, record: dict[str, Any]) -> int:
-        """
-        Estimate training time for an exercise.
+    def _rest_seconds_for_plan(self) -> int:
+        try:
+            return int(getattr(self, "live_rest_seconds", 30) or 0)
+        except (TypeError, ValueError):
+            return 30
 
-        Scoring logic (documented for transparency):
-        - If recommended_time_seconds is available, convert to minutes (ceil).
-        - Else, assume each rep ~4 seconds; time = sets * reps * 4 sec, then convert to minutes (ceil).
+    def _minutes_from_seconds(self, total_seconds: int) -> int:
+        if total_seconds <= 0:
+            return 0
+        return int((total_seconds + 59) // 60)
+
+    def _estimate_exercise_seconds(self, record: dict[str, Any]) -> int:
+        """
+        Estimate total time for one exercise including rest between sets.
+
+        - If recommended_time_seconds is available, treat it as per-set time.
+        - Else, assume each rep ~4 seconds with a 20s minimum per set.
+        - Else, assume 30s per set when only sets are provided.
         - Fallback to 5 minutes if no volume info exists.
         """
         try:
             time_seconds = record.get("time_seconds")
             sets = record.get("sets")
             reps = record.get("reps")
+            if not time_seconds and not sets and not reps:
+                return 5 * 60
+            rest_seconds = int(getattr(self, "live_rest_seconds", 30) or 0)
+            set_count = int(sets) if sets else 1
             if time_seconds:
-                return max(1, (time_seconds + 59) // 60)
-            if sets and reps:
-                seconds = sets * reps * 4
-                return max(1, (seconds + 59) // 60)
-            if sets:
-                seconds = sets * 30
-                return max(1, (seconds + 59) // 60)
+                per_set = max(10, int(time_seconds))
+            elif reps:
+                per_set = max(20, int(reps) * 4)
+            else:
+                per_set = 30
+            total = set_count * per_set
+            if set_count > 1:
+                total += (set_count - 1) * rest_seconds
+            return max(total, per_set)
         except Exception:
-            pass
-        return 5
+            return 5 * 60
+
+    def _estimate_minutes(self, record: dict[str, Any]) -> int:
+        """
+        Estimate training time for an exercise.
+
+        Scoring logic (documented for transparency):
+        - Include rest between sets using the configured rest duration.
+        - Use per-set time when recommended_time_seconds is provided.
+        - Else, assume each rep ~4 seconds with a 20s minimum per set.
+        - Fallback to 5 minutes if no volume info exists.
+        """
+        total_seconds = RootWidget._estimate_exercise_seconds(self, record)
+        return max(1, RootWidget._minutes_from_seconds(self, total_seconds))
+
+    def _estimate_plan_seconds(self, plan_items: Sequence[dict[str, Any]]) -> int:
+        if not plan_items:
+            return 0
+        rest_seconds = self._rest_seconds_for_plan()
+        total_seconds = 0
+        for item in plan_items:
+            estimated_seconds = item.get("estimated_seconds")
+            if isinstance(estimated_seconds, (int, float)):
+                total_seconds += int(estimated_seconds)
+            else:
+                total_seconds += self._estimate_exercise_seconds(item)
+        if len(plan_items) > 1:
+            total_seconds += (len(plan_items) - 1) * rest_seconds
+        return total_seconds
 
     def _recency_days_map(self) -> dict[str, int]:
         """Return a mapping of exercise name to days since last performed for current user."""
@@ -3435,7 +3506,8 @@ class RootWidget(BoxLayout):
                 continue
             if any(item["name"] == record["name"] for item in self.rec_plan):
                 continue
-            est_minutes = self._estimate_minutes(record)
+            est_seconds = self._estimate_exercise_seconds(record)
+            est_minutes = self._minutes_from_seconds(est_seconds)
             recency_days = recency_map.get(record["name"])
             score = self._score_recommendation(
                 {"rating": float(record.get("rating", 0))}, recency_days
@@ -3455,6 +3527,7 @@ class RootWidget(BoxLayout):
                     "reps": record.get("reps"),
                     "time_seconds": record.get("time_seconds"),
                     "estimated_minutes": str(est_minutes),
+                    "estimated_seconds": est_seconds,
                     "score": score,
                     "score_display": str(score),
                     "show_details": False,
@@ -3544,6 +3617,7 @@ class RootWidget(BoxLayout):
             "time_seconds": rec.get("time_seconds"),
             "recommendation": rec.get("recommendation", ""),
             "estimated_minutes": rec["estimated_minutes"],
+            "estimated_seconds": rec.get("estimated_seconds"),
             "display": f'{rec["name"]} ({rec["estimated_minutes"]} min)',
         }
         self.rec_plan.append(plan_item)
@@ -3565,10 +3639,30 @@ class RootWidget(BoxLayout):
             }
             for idx, item in enumerate(self.rec_plan)
         ]
-        total_minutes = sum(int(item["estimated_minutes"]) for item in self.rec_plan)
-        self.rec_total_minutes = str(total_minutes)
         self._validate_plan_time()
         rv.refresh_from_data()
+
+    def _recalculate_recommendation_times(self) -> None:
+        if self.rec_recommendations:
+            for rec in self.rec_recommendations:
+                est_seconds = self._estimate_exercise_seconds(rec)
+                rec["estimated_seconds"] = est_seconds
+                rec["estimated_minutes"] = str(self._minutes_from_seconds(est_seconds))
+            try:
+                rec_list = self._recommend_screen().ids.rec_list
+                rec_list.data = self.rec_recommendations
+                rec_list.refresh_from_data()
+            except Exception:
+                pass
+        if self.rec_plan:
+            for item in self.rec_plan:
+                est_seconds = self._estimate_exercise_seconds(item)
+                item["estimated_seconds"] = est_seconds
+                item["estimated_minutes"] = str(self._minutes_from_seconds(est_seconds))
+                item["display"] = f'{item["name"]} ({item["estimated_minutes"]} min)'
+            self._refresh_recommendation_view()
+        else:
+            self._validate_plan_time()
 
     def move_plan_item(self, name: str, direction: int) -> None:
         for idx, item in enumerate(self.rec_plan):
@@ -3589,7 +3683,8 @@ class RootWidget(BoxLayout):
             goal_code = self._goal_label_map.get(self.rec_goal_spinner_text)
             match = next((r for r in self.records if r["name"] == name and r["goal"] == goal_code), None)
             if match:
-                est_minutes = self._estimate_minutes(match)
+                est_seconds = self._estimate_exercise_seconds(match)
+                est_minutes = self._minutes_from_seconds(est_seconds)
                 recency_map = self._recency_days_map()
                 recency_days = recency_map.get(match["name"])
                 score = self._score_recommendation({"rating": float(match.get("rating", 0))}, recency_days)
@@ -3608,6 +3703,7 @@ class RootWidget(BoxLayout):
                         "reps": match.get("reps"),
                         "time_seconds": match.get("time_seconds"),
                         "estimated_minutes": str(est_minutes),
+                        "estimated_seconds": est_seconds,
                         "score": score,
                         "score_display": str(score),
                         "show_details": False,
@@ -3628,22 +3724,39 @@ class RootWidget(BoxLayout):
     def clear_recommendation_plan(self) -> None:
         self._reset_plan(silent=False)
 
-    def _validate_plan_time(self) -> None:
+    def _validate_plan_time(self) -> bool:
+        total_seconds = self._estimate_plan_seconds(self.rec_plan)
+        total_minutes = self._minutes_from_seconds(total_seconds)
+        self.rec_total_minutes = str(total_minutes)
         try:
-            limit = int(self.rec_max_minutes_text or "0")
+            target = int(self.rec_max_minutes_text or "0")
         except ValueError:
-            limit = 0
-        try:
-            total = int(self.rec_total_minutes or "0")
-        except ValueError:
-            total = 0
-        if limit and total > int(limit * 1.1):
+            target = 0
+        if not self.rec_plan:
+            return True
+        if not target:
+            return True
+        delta = total_minutes - target
+        rest_note = f"Includes {self._rest_seconds_for_plan()}s rest between sets/exercises."
+        status_lower = (self.rec_status_text or "").lower()
+        is_time_status = "plan time" in status_lower or "target" in status_lower
+        if abs(delta) <= 5:
+            if not status_lower or is_time_status:
+                self._set_rec_status(
+                    f"Plan ready. Total {total_minutes} min vs {target} min target (±5 min). {rest_note}"
+                )
+            return True
+        if delta > 5:
             self._set_rec_status(
-                f"Plan time {total} min exceeds limit {limit} min (10% buffer). Remove or reorder.",
+                f"Plan time {total_minutes} min exceeds target {target} min by {delta} min. {rest_note}",
                 error=True,
             )
-        elif not self.rec_status_text or "exceeds limit" in self.rec_status_text.lower():
-            self._set_rec_status("Plan ready.")
+            return False
+        self._set_rec_status(
+            f"Plan time {total_minutes} min is {abs(delta)} min below target {target} min. {rest_note}",
+            error=True,
+        )
+        return False
 
     def handle_start_training(self) -> None:
         if not self._require_user():
@@ -3651,13 +3764,7 @@ class RootWidget(BoxLayout):
         if not self.rec_plan:
             self._set_rec_status("Add at least one exercise to the plan.", error=True)
             return
-        self._validate_plan_time()
-        try:
-            limit = int(self.rec_max_minutes_text or "0")
-        except ValueError:
-            limit = 0
-        total = int(self.rec_total_minutes or "0")
-        if limit and total > int(limit * 1.1):
+        if not self._validate_plan_time():
             return
         session_plan: list[dict[str, Any]] = []
         missing: list[str] = []
@@ -3990,6 +4097,7 @@ class RootWidget(BoxLayout):
         self.live_rest_setting_text = str(seconds)
         self._set_hint(f"Break length set to {seconds}s.", color=(0.18, 0.4, 0.2, 1))
         self._update_live_labels()
+        self._recalculate_recommendation_times()
 
     def start_live_workout(self) -> None:
         if not self.live_active or self.live_started:

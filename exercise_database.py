@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Iterable, Optional, Sequence, Tuple
@@ -17,6 +18,121 @@ DEFAULT_GOAL_RATING = 5
 EXAMPLE_USERNAME = "exaple-user"
 EXAMPLE_DISPLAY_NAME = "Example User"
 EXAMPLE_PREFERRED_GOAL = "muscle_building"
+
+_TAG_DESCRIPTOR_WORDS = {"focus", "emphasis", "target", "targeting", "optional", "mainly", "primary", "secondary"}
+_EQUIPMENT_ALIASES = {
+    "barbell": ["Barbell"],
+    "plates": ["Barbell"],
+    "dumbbell": ["Dumbbell"],
+    "dumbbells": ["Dumbbell"],
+    "bodyweight": ["Bodyweight"],
+    "body weight": ["Bodyweight"],
+    "machine": ["Machine"],
+    "cable machine": ["Machine"],
+    "cable": ["Machine"],
+    "resistance bands": ["Bands"],
+    "bands": ["Bands"],
+    "band": ["Bands"],
+    "kettlebell": ["Kettlebell"],
+    "medicine ball": ["Medicine Ball"],
+    "jump rope": ["Jump Rope"],
+    "pull up bar": ["Bodyweight", "Pull-up Bar"],
+    "pull-up bar": ["Bodyweight", "Pull-up Bar"],
+    "mat": ["Bodyweight", "Mat"],
+}
+_MUSCLE_ALIASES = {
+    "chest": ["Chest"],
+    "back": ["Back"],
+    "legs": ["Legs"],
+    "shoulders": ["Shoulders"],
+    "core": ["Core"],
+    "biceps": ["Biceps"],
+    "triceps": ["Triceps"],
+    "posterior chain": ["Back", "Legs", "Posterior Chain"],
+    "glutes": ["Glutes", "Legs", "Posterior Chain"],
+    "calves": ["Calves", "Legs"],
+    "full body": ["Full Body"],
+}
+
+
+def _normalize_tag_key(value: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9]+", " ", value.lower())
+    return " ".join(cleaned.split())
+
+
+def _strip_descriptor_words(token: str) -> str:
+    parts = token.split()
+    while parts and parts[-1].lower() in _TAG_DESCRIPTOR_WORDS:
+        parts.pop()
+    return " ".join(parts)
+
+
+def _split_tag_string(value: str) -> list[str]:
+    text = re.sub(r"\([^)]*\)", "", value or "")
+    text = text.replace("&", " and ").replace("/", ",")
+    parts = re.split(r",|;|\band\b|\bwith\b|\+|\|", text, flags=re.IGNORECASE)
+    tokens: list[str] = []
+    for part in parts:
+        cleaned = _strip_descriptor_words(part.strip())
+        if cleaned:
+            tokens.append(cleaned)
+    return tokens
+
+
+def _flatten_tag_input(value: Iterable[str] | str | None) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return _split_tag_string(value)
+    tokens: list[str] = []
+    for item in value:
+        if item is None:
+            continue
+        tokens.extend(_split_tag_string(str(item)))
+    return tokens
+
+
+def _dedupe_preserve_order(items: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        deduped.append(item)
+    return deduped
+
+
+def format_tag_list(items: Sequence[str]) -> str:
+    return ", ".join([item for item in items if item])
+
+
+def normalize_equipment_list(value: Iterable[str] | str) -> list[str]:
+    items: list[str] = []
+    for token in _flatten_tag_input(value):
+        key = _normalize_tag_key(token)
+        if not key:
+            continue
+        mapped = _EQUIPMENT_ALIASES.get(key)
+        if mapped:
+            items.extend(mapped)
+        else:
+            items.append(token.strip().title())
+    return _dedupe_preserve_order(items)
+
+
+def normalize_muscle_group_list(value: Iterable[str] | str) -> list[str]:
+    items: list[str] = []
+    for token in _flatten_tag_input(value):
+        key = _normalize_tag_key(token)
+        if not key:
+            continue
+        mapped = _MUSCLE_ALIASES.get(key)
+        if mapped:
+            items.extend(mapped)
+        else:
+            items.append(token.strip().title())
+    return _dedupe_preserve_order(items)
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
@@ -874,14 +990,16 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
     for exercise in exercises:
         if exercise["name"].strip().lower() in existing_names:
             continue
+        equipment_value = format_tag_list(normalize_equipment_list(exercise["required_equipment"]))
+        muscle_value = format_tag_list(normalize_muscle_group_list(exercise["target_muscle_group"]))
         cursor = conn.execute(
             exercise_stmt,
             (
                 exercise["name"],
                 exercise["icon"],
                 exercise["short_description"],
-                exercise["required_equipment"],
-                exercise["target_muscle_group"],
+                equipment_value or exercise["required_equipment"],
+                muscle_value or exercise["target_muscle_group"],
             ),
         )
         exercise_id = cursor.lastrowid
@@ -1024,8 +1142,8 @@ def add_exercise(
     *,
     name: str,
     short_description: str,
-    required_equipment: str,
-    target_muscle_group: str,
+    required_equipment: Iterable[str] | str,
+    target_muscle_group: Iterable[str] | str,
     goal: str,
     suitability_rating: int,
     goal_ratings: Optional[dict[str, int]] = None,
@@ -1040,17 +1158,20 @@ def add_exercise(
 
     The database constraints enforce goal membership and rating range.
     Missing goal ratings fall back to DEFAULT_GOAL_RATING.
+    Equipment and muscle group inputs are normalized into atomic tags.
     """
     if goal_ratings is None:
         goal_ratings = {}
     fallback_rating = suitability_rating if suitability_rating is not None else DEFAULT_GOAL_RATING
+    equipment_value = format_tag_list(normalize_equipment_list(required_equipment)) or str(required_equipment)
+    muscle_value = format_tag_list(normalize_muscle_group_list(target_muscle_group)) or str(target_muscle_group)
     with get_connection(db_path) as conn:
         cursor = conn.execute(
             """
             INSERT INTO exercises (name, icon, short_description, required_equipment, target_muscle_group)
             VALUES (?, ?, ?, ?, ?);
             """,
-            (name, icon, short_description, required_equipment, target_muscle_group),
+            (name, icon, short_description, equipment_value, muscle_value),
         )
         exercise_id = cursor.lastrowid
         for goal_code in GOALS:
