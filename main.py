@@ -115,8 +115,7 @@ KV = """
             source: root.icon_source
             size_hint: None, None
             size: (dp(64), dp(64)) if root.icon_source else (0, 0)
-            allow_stretch: True
-            keep_ratio: True
+            fit_mode: "contain"
             opacity: 1 if root.icon_source else 0
         BoxLayout:
             orientation: "vertical"
@@ -214,7 +213,7 @@ KV = """
     padding: dp(12)
     spacing: dp(6)
     size_hint_y: None
-    height: dp(220)
+    height: dp(240)
     canvas.before:
         Color:
             rgba: 0.9, 0.95, 1, 1
@@ -222,13 +221,24 @@ KV = """
             pos: self.pos
             size: self.size
             radius: [8,]
-    Label:
-        text: root.name
-        font_size: "17sp"
-        bold: True
-        color: 0.1, 0.12, 0.2, 1
+    BoxLayout:
+        orientation: "horizontal"
+        spacing: dp(8)
         size_hint_y: None
-        height: self.texture_size[1]
+        height: self.minimum_height
+        Image:
+            source: root.icon_source
+            size_hint: None, None
+            size: (dp(42), dp(42)) if root.icon_source else (0, 0)
+            fit_mode: "contain"
+            opacity: 1 if root.icon_source else 0
+        Label:
+            text: root.name
+            font_size: "17sp"
+            bold: True
+            color: 0.1, 0.12, 0.2, 1
+            size_hint_y: None
+            height: self.texture_size[1]
     WrapLabel:
         text: root.description
         color: 0.1, 0.12, 0.18, 1
@@ -775,8 +785,7 @@ KV = """
                     source: app.root.live_icon_source
                     size_hint_y: None
                     height: dp(140) if app.root.live_icon_source else dp(0)
-                    allow_stretch: True
-                    keep_ratio: True
+                    fit_mode: "contain"
                     opacity: 1 if app.root.live_icon_source else 0
                 Label:
                     text: app.root.live_icon_display
@@ -1259,6 +1268,23 @@ KV = """
                     size_hint_y: None
                     height: dp(18)
                 WrapLabel:
+                    text: "Icon (optional)"
+                    color: 0.18, 0.18, 0.22, 1
+                Spinner:
+                    id: icon_spinner
+                    text: app.root.icon_choice_spinner_text
+                    values: app.root.icon_choice_options
+                    on_text: app.root.on_icon_choice_change(self.text)
+                WrapLabel:
+                    text: "Icon preview"
+                    color: 0.18, 0.18, 0.22, 1
+                Image:
+                    source: app.root.add_icon_source
+                    size_hint_y: None
+                    height: dp(80) if app.root.add_icon_source else dp(0)
+                    fit_mode: "contain"
+                    opacity: 1 if app.root.add_icon_source else 0
+                WrapLabel:
                     text: "Target suitability goal"
                     color: 0.18, 0.18, 0.22, 1
                 Spinner:
@@ -1581,20 +1607,12 @@ KV = """
             WrapLabel:
                 text: app.root.history_status_text
                 color: app.root.history_status_color
-            RecycleView:
+            BoxLayout:
                 id: history_list
-                viewclass: "WorkoutCard"
-                bar_width: dp(6)
-                scroll_type: ['bars', 'content']
+                orientation: "vertical"
+                spacing: dp(12)
                 size_hint_y: None
-                height: dp(420)
-                RecycleBoxLayout:
-                    default_size: None, dp(130)
-                    default_size_hint: 1, None
-                    size_hint_y: None
-                    height: self.minimum_height
-                    orientation: "vertical"
-                    spacing: dp(12)
+                height: self.minimum_height
 
 <RecommendationScreen>:
     BoxLayout:
@@ -1656,7 +1674,7 @@ KV = """
             size_hint_y: 1
             RecycleGridLayout:
                 cols: 2
-                default_size: None, dp(200)
+                default_size: None, dp(240)
                 default_size_hint: 0.5, None
                 size_hint_y: None
                 height: self.minimum_height
@@ -1939,6 +1957,7 @@ class PlanItem(BoxLayout):
 
 class RecommendationCard(BoxLayout):
     name = StringProperty()
+    icon_source = StringProperty("")
     description = StringProperty()
     muscle_group = StringProperty()
     equipment = StringProperty()
@@ -2097,6 +2116,7 @@ class RootWidget(BoxLayout):
     history_exercise_options = ListProperty()
     history_exercise_filtered_options = ListProperty()
     workout_goal_options = ListProperty()
+    icon_choice_options = ListProperty()
 
     goal_spinner_text = StringProperty("All goals")
     muscle_spinner_text = StringProperty("All muscle groups")
@@ -2111,6 +2131,7 @@ class RootWidget(BoxLayout):
     add_muscle_spinner_text = StringProperty("")
     add_equipment_spinner_text = StringProperty("")
     rating_spinner_text = StringProperty("5")
+    icon_choice_spinner_text = StringProperty("No icon")
     history_exercise_spinner_text = StringProperty("Select exercise")
     workout_goal_spinner_text = StringProperty("No goal")
     history_exercise_filter = StringProperty("")
@@ -2122,6 +2143,7 @@ class RootWidget(BoxLayout):
     status_color = ListProperty((0.14, 0.4, 0.2, 1))
     muscle_choice_display = StringProperty("")
     equipment_choice_display = StringProperty("")
+    add_icon_source = StringProperty("")
     user_spinner_text = StringProperty("Select user")
     current_user_display = StringProperty("No user selected")
     user_status_text = StringProperty("")
@@ -2214,6 +2236,10 @@ class RootWidget(BoxLayout):
         self.live_rest_seconds = 30
         self.live_rest_setting_text = str(int(self.live_rest_seconds))
         self._icon_lookup = self._build_icon_lookup()
+        self.icon_choice_options = self._build_icon_choice_options()
+        if self.icon_choice_spinner_text not in self.icon_choice_options:
+            self.icon_choice_spinner_text = "No icon"
+        self.on_icon_choice_change(self.icon_choice_spinner_text)
         self._signal_clear_event = None
         self._live_phase = "idle"
         self._update_rec_plan_height()
@@ -2232,6 +2258,10 @@ class RootWidget(BoxLayout):
     def _normalize_icon_key(self, value: str) -> str:
         return "".join(ch.lower() for ch in value if ch.isalnum())
 
+    def _slugify_icon_name(self, value: str) -> str:
+        cleaned = "".join(ch.lower() if ch.isalnum() else "_" for ch in value)
+        return "_".join(part for part in cleaned.split("_") if part)
+
     def _build_icon_lookup(self) -> dict[str, str]:
         icon_dir = Path(__file__).with_name("Pictures")
         if not icon_dir.is_dir():
@@ -2246,6 +2276,21 @@ class RootWidget(BoxLayout):
             if key and key not in lookup:
                 lookup[key] = str(entry)
         return lookup
+
+    def _build_icon_choice_options(self) -> list[str]:
+        icon_dir = Path(__file__).with_name("Pictures")
+        if not icon_dir.is_dir():
+            return ["No icon"]
+        choices: list[str] = []
+        for entry in sorted(icon_dir.iterdir(), key=lambda path: path.name.lower()):
+            if not entry.is_file():
+                continue
+            if entry.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
+                continue
+            slug = self._slugify_icon_name(entry.stem)
+            if slug and slug not in choices:
+                choices.append(slug)
+        return ["No icon"] + choices if choices else ["No icon"]
 
     def _resolve_icon_source(self, icon_name: str) -> str:
         if not icon_name:
@@ -2268,6 +2313,14 @@ class RootWidget(BoxLayout):
             if candidate.startswith(key) or key.startswith(candidate):
                 return self._icon_lookup[candidate]
         return ""
+
+    def on_icon_choice_change(self, value: str) -> None:
+        if not value or value in {"No icon", "Select icon", "No icons found"}:
+            self.icon_choice_spinner_text = "No icon"
+            self.add_icon_source = ""
+            return
+        self.icon_choice_spinner_text = value
+        self.add_icon_source = self._resolve_icon_source(value)
 
     def _preferred_goal_label(self) -> str:
         """
@@ -2984,7 +3037,8 @@ class RootWidget(BoxLayout):
             return
 
         if not self.current_user_id:
-            history_screen.ids.history_list.data = []
+            history_list = history_screen.ids.history_list
+            history_list.clear_widgets()
             self._set_history_status("Select or register a user to see history.", error=False)
             self._load_stats(clear=True)
             return
@@ -2999,7 +3053,7 @@ class RootWidget(BoxLayout):
             self._set_history_status(f"Database error: {exc}", error=True)
             return
 
-        data = []
+        cards: list[WorkoutCard] = []
         for entry in history_entries:
             exercises_display = ", ".join(entry.get("exercises", [])) if entry.get("exercises") else "No exercises recorded"
             attempts = entry.get("exercise_attempts") or []
@@ -3019,19 +3073,21 @@ class RootWidget(BoxLayout):
                 duration_display = f"{duration_minutes} min ({duration_seconds}s)"
             else:
                 duration_display = f"{duration_minutes} min"
-            data.append(
-                {
-                    "date_display": entry["performed_at"],
-                    "duration_display": duration_display,
-                    "exercises_display": exercises_display,
-                    "goal_display": goal_display,
-                    "sets_display": sets_display,
-                    "attempts_display": attempts_display,
-                }
+            card = WorkoutCard(
+                date_display=entry["performed_at"],
+                duration_display=duration_display,
+                exercises_display=exercises_display,
+                goal_display=goal_display,
+                sets_display=sets_display,
+                attempts_display=attempts_display,
             )
-        history_screen.ids.history_list.data = data
-        if data:
-            self._set_history_status(f"{len(data)} workout(s) loaded.")
+            cards.append(card)
+        history_list = history_screen.ids.history_list
+        history_list.clear_widgets()
+        for card in cards:
+            history_list.add_widget(card)
+        if cards:
+            self._set_history_status(f"{len(cards)} workout(s) loaded.")
         else:
             self._set_history_status("No workouts in this date range.", error=False)
         self._load_stats()
@@ -3263,6 +3319,7 @@ class RootWidget(BoxLayout):
                 {
                     "name": record["name"],
                     "icon": record.get("icon", ""),
+                    "icon_source": record.get("icon_source", ""),
                     "description": record["description"],
                     "muscle_group": record["muscle_group"],
                     "equipment": record["equipment"],
@@ -3414,6 +3471,7 @@ class RootWidget(BoxLayout):
                         "muscle_group": match["muscle_group"],
                         "equipment": match["equipment"],
                         "icon": match.get("icon", ""),
+                        "icon_source": match.get("icon_source", ""),
                         "goal_label": match["goal_label"],
                         "suitability": match["suitability_display"],
                         "recommendation": match["recommendation"],
@@ -3542,6 +3600,8 @@ class RootWidget(BoxLayout):
             self.add_muscle_spinner_text = self.muscle_choice_options[0]
         self.add_equipment_spinner_text = self._resolve_equipment_choice("")
         self.rating_spinner_text = "5"
+        self.icon_choice_spinner_text = "No icon"
+        self.add_icon_source = ""
 
     def handle_add_exercise(self) -> None:
         ids = self._add_screen().ids
@@ -3551,6 +3611,10 @@ class RootWidget(BoxLayout):
         goal_label = ids.goal_add_spinner.text
         goal = self._goal_label_map.get(goal_label)
         muscle_group = ids.muscle_add_spinner.text.strip()
+        icon_choice = ""
+        if "icon_spinner" in ids:
+            icon_choice = ids.icon_spinner.text.strip()
+        icon = "" if icon_choice in {"", "No icon", "Select icon", "No icons found"} else icon_choice
 
         if not (name and description and muscle_group and goal and equipment):
             self._set_status("Name, description, muscle group, equipment, and goal are required.", error=True)
@@ -3595,6 +3659,7 @@ class RootWidget(BoxLayout):
                 recommended_sets=sets,
                 recommended_reps_per_set=reps,
                 recommended_time_seconds=time_seconds,
+                icon=icon,
             )
         except sqlite3.IntegrityError:
             self._set_status("Exercise name already exists. Choose another name.", error=True)
