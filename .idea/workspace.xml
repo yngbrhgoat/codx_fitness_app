@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="Verbessertes-Colour-Theme">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercise_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/exercise_database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -33,18 +35,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "iss18",
-    "last_opened_file_path": "/home/larsh/Desktop/codx_fitness_app",
-    "settings.editor.selected.configurable": "database.data.csv.formats"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;iss18&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/larsh/Desktop/codx_fitness_app&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;database.data.csv.formats&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -292,7 +294,55 @@
       <option name="project" value="LOCAL" />
       <updated>1766257088234</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="verbesserte progression">
+      <option name="closed" value="true" />
+      <created>1766410666273</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1766410666273</updated>
+    </task>
+    <task id="LOCAL-00031" summary="verbesserte progression">
+      <option name="closed" value="true" />
+      <created>1766411414219</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1766411414219</updated>
+    </task>
+    <task id="LOCAL-00032" summary="verbesserte progression">
+      <option name="closed" value="true" />
+      <created>1766412328824</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1766412328824</updated>
+    </task>
+    <task id="LOCAL-00033" summary="fehlerhafte Filterlogik im Browse-Screen beheben">
+      <option name="closed" value="true" />
+      <created>1766417892673</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1766417892673</updated>
+    </task>
+    <task id="LOCAL-00034" summary="hinzufügen für das Anzeigen für das Suchen in Filtern und keinem passenden Ergebnis">
+      <option name="closed" value="true" />
+      <created>1766418895149</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1766418895149</updated>
+    </task>
+    <task id="LOCAL-00035" summary="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können.">
+      <option name="closed" value="true" />
+      <created>1766427995061</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1766427995061</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -327,7 +377,11 @@
     <MESSAGE value="Kalender-Auswahl" />
     <MESSAGE value="Kalender-Auswahl-überarbeitet" />
     <MESSAGE value="Verbessertes-Colour-Theme" />
-    <option name="LAST_COMMIT_MESSAGE" value="Verbessertes-Colour-Theme" />
+    <MESSAGE value="verbesserte progression" />
+    <MESSAGE value="fehlerhafte Filterlogik im Browse-Screen beheben" />
+    <MESSAGE value="hinzufügen für das Anzeigen für das Suchen in Filtern und keinem passenden Ergebnis" />
+    <MESSAGE value="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können." />
+    <option name="LAST_COMMIT_MESSAGE" value="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

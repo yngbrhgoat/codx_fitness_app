@@ -186,6 +186,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
             name TEXT NOT NULL UNIQUE,
             icon TEXT,
             short_description TEXT NOT NULL,
+            execution_instructions TEXT,
             required_equipment TEXT NOT NULL,
             target_muscle_group TEXT NOT NULL
         );
@@ -229,6 +230,7 @@ def migrate_schema(conn: sqlite3.Connection) -> None:
         "status",
         "status TEXT NOT NULL DEFAULT 'completed'",
     )
+    _add_column_if_missing(conn, "exercises", "execution_instructions", "execution_instructions TEXT")
     conn.commit()
 
 
@@ -236,7 +238,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
     """
     Seed a baseline set of exercises with per-goal recommendations.
 
-    Existing entries are skipped so reruns remain safe.
+    Existing entries are skipped so reruns remain safe, while missing instructions are filled.
     """
     existing_names = {row[0].strip().lower() for row in conn.execute("SELECT name FROM exercises;")}
 
@@ -245,6 +247,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Push-Up",
             "icon": "push_up",
             "short_description": "Bodyweight push for chest, shoulders, and triceps.",
+            "execution_instructions": (
+                "Start in a high plank with hands under shoulders. Lower chest until elbows are about "
+                "45 degrees, then press back up while keeping core tight."
+            ),
             "required_equipment": "Bodyweight (mat optional)",
             "target_muscle_group": "Chest",
             "recommendations": {
@@ -278,6 +284,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Barbell Deadlift",
             "icon": "barbell_deadlift",
             "short_description": "Compound lift targeting the posterior chain and grip strength.",
+            "execution_instructions": (
+                "Stand with mid-foot under the bar, hinge at hips to grip. Brace your back, drive through "
+                "heels to stand tall, then lower the bar with control."
+            ),
             "required_equipment": "Barbell, plates",
             "target_muscle_group": "Posterior chain",
             "recommendations": {
@@ -311,6 +321,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Plank",
             "icon": "plank",
             "short_description": "Isometric core hold improving trunk stability.",
+            "execution_instructions": (
+                "Place forearms under shoulders, body in a straight line. Brace core, squeeze glutes, and "
+                "keep hips level while breathing steadily."
+            ),
             "required_equipment": "Mat (optional)",
             "target_muscle_group": "Core",
             "recommendations": {
@@ -344,6 +358,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Jump Rope",
             "icon": "jump_rope",
             "short_description": "Rhythmic skipping for cardio conditioning and calf endurance.",
+            "execution_instructions": (
+                "Hold handles at hip height with elbows close. Jump lightly on the balls of your feet and "
+                "keep the rope turning from the wrists."
+            ),
             "required_equipment": "Jump rope",
             "target_muscle_group": "Full body with calves focus",
             "recommendations": {
@@ -377,6 +395,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Bench Press",
             "icon": "bench_press",
             "short_description": "Barbell press focused on chest strength and power.",
+            "execution_instructions": (
+                "Lie on the bench with feet planted. Grip the bar slightly wider than shoulders, lower to "
+                "mid-chest, then press up without bouncing."
+            ),
             "required_equipment": "Barbell",
             "target_muscle_group": "Chest",
             "recommendations": {
@@ -410,6 +432,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Dumbbell Chest Fly",
             "icon": "dumbbell_chest_fly",
             "short_description": "Chest isolation move emphasizing stretch and control.",
+            "execution_instructions": (
+                "Lie on a bench with dumbbells above chest and a slight elbow bend. Lower arms wide until "
+                "you feel a stretch, then bring them back together with control."
+            ),
             "required_equipment": "Dumbbells",
             "target_muscle_group": "Chest",
             "recommendations": {
@@ -443,6 +469,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Dumbbell Bicep Curl",
             "icon": "dumbbell_bicep_curl",
             "short_description": "Classic curl for biceps strength and size.",
+            "execution_instructions": (
+                "Stand tall with elbows pinned to your sides. Curl the weights up without swinging, then "
+                "lower slowly."
+            ),
             "required_equipment": "Dumbbells",
             "target_muscle_group": "Biceps",
             "recommendations": {
@@ -476,6 +506,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Overhead Tricep Extension",
             "icon": "overhead_tricep_extension",
             "short_description": "Overhead extension to target the triceps long head.",
+            "execution_instructions": (
+                "Hold a dumbbell overhead with elbows close. Lower behind the head until you feel a "
+                "stretch, then extend elbows to lock out."
+            ),
             "required_equipment": "Dumbbells",
             "target_muscle_group": "Triceps",
             "recommendations": {
@@ -509,6 +543,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Tricep Dip",
             "icon": "tricep_dip",
             "short_description": "Bodyweight dip emphasizing triceps and chest.",
+            "execution_instructions": (
+                "Hands on a bench, legs forward. Lower your body until elbows reach about 90 degrees, "
+                "then press back up."
+            ),
             "required_equipment": "Bodyweight",
             "target_muscle_group": "Triceps",
             "recommendations": {
@@ -542,6 +580,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Dumbbell Shoulder Press",
             "icon": "dumbbell_shoulder_press",
             "short_description": "Overhead press building shoulder strength and stability.",
+            "execution_instructions": (
+                "Start with dumbbells at shoulder height. Press overhead to full extension, then lower "
+                "under control."
+            ),
             "required_equipment": "Dumbbells",
             "target_muscle_group": "Shoulders",
             "recommendations": {
@@ -575,6 +617,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Goblet Squat",
             "icon": "goblet_squat",
             "short_description": "Front-loaded squat to train legs and core.",
+            "execution_instructions": (
+                "Hold a dumbbell or kettlebell at chest height. Sit hips back and down with knees tracking "
+                "toes, then drive through heels to stand."
+            ),
             "required_equipment": "Kettlebell",
             "target_muscle_group": "Legs",
             "recommendations": {
@@ -608,6 +654,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Walking Lunge",
             "icon": "walking_lunge",
             "short_description": "Alternating lunges for legs and balance.",
+            "execution_instructions": (
+                "Step forward into a lunge, lowering until both knees are about 90 degrees. Push through "
+                "the front heel to step into the next lunge."
+            ),
             "required_equipment": "Bodyweight",
             "target_muscle_group": "Legs",
             "recommendations": {
@@ -641,6 +691,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Pull-Up",
             "icon": "pull_up",
             "short_description": "Vertical pulling for back and biceps strength.",
+            "execution_instructions": (
+                "Grip the bar slightly wider than shoulders. Start from a dead hang, pull chest to the bar, "
+                "then lower fully with control."
+            ),
             "required_equipment": "Pull-up Bar",
             "target_muscle_group": "Back",
             "recommendations": {
@@ -674,6 +728,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Lat Pulldown",
             "icon": "lat_pulldown",
             "short_description": "Cable pulldown targeting the lats and upper back.",
+            "execution_instructions": (
+                "Sit tall and grip the bar wide. Pull to the upper chest while squeezing shoulder blades, "
+                "then release slowly."
+            ),
             "required_equipment": "Cable Machine",
             "target_muscle_group": "Back",
             "recommendations": {
@@ -707,6 +765,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Seated Cable Row",
             "icon": "seated_cable_row",
             "short_description": "Horizontal pull for mid-back strength.",
+            "execution_instructions": (
+                "Sit upright with knees slightly bent. Pull the handle to the lower ribs with elbows close, "
+                "squeeze the back, then return under control."
+            ),
             "required_equipment": "Cable Machine",
             "target_muscle_group": "Back",
             "recommendations": {
@@ -740,6 +802,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Kettlebell Swing",
             "icon": "kettlebell_swing",
             "short_description": "Explosive hip hinge for full-body power and conditioning.",
+            "execution_instructions": (
+                "Hinge at the hips and swing the bell back. Snap hips forward to chest height, keeping arms "
+                "relaxed and back neutral."
+            ),
             "required_equipment": "Kettlebell",
             "target_muscle_group": "Full Body",
             "recommendations": {
@@ -773,6 +839,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Russian Twist",
             "icon": "russian_twist",
             "short_description": "Rotational core exercise for obliques.",
+            "execution_instructions": (
+                "Sit with torso leaned back and core braced. Rotate shoulders side to side, tapping the "
+                "floor next to your hips."
+            ),
             "required_equipment": "Medicine Ball",
             "target_muscle_group": "Core",
             "recommendations": {
@@ -806,6 +876,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Glute Bridge",
             "icon": "glute_bridge",
             "short_description": "Hip extension targeting glutes and hamstrings.",
+            "execution_instructions": (
+                "Lie on your back with knees bent and feet flat. Drive through heels to lift hips, squeeze "
+                "glutes, then lower slowly."
+            ),
             "required_equipment": "Bodyweight",
             "target_muscle_group": "Glutes",
             "recommendations": {
@@ -839,6 +913,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Calf Raise",
             "icon": "calf_raise",
             "short_description": "Simple raise to build calf strength and endurance.",
+            "execution_instructions": (
+                "Stand tall with feet hip-width. Rise onto the balls of your feet, pause, then lower heels "
+                "with control."
+            ),
             "required_equipment": "Bodyweight",
             "target_muscle_group": "Calves",
             "recommendations": {
@@ -872,6 +950,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Band Pull-Apart",
             "icon": "band_pull_apart",
             "short_description": "Band drill to strengthen shoulders and upper back.",
+            "execution_instructions": (
+                "Hold the band at shoulder height with straight arms. Pull hands apart by squeezing "
+                "shoulder blades, then return slowly."
+            ),
             "required_equipment": "Resistance Bands",
             "target_muscle_group": "Shoulders",
             "recommendations": {
@@ -905,6 +987,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Leg Press",
             "icon": "leg_press",
             "short_description": "Machine press to load the legs safely.",
+            "execution_instructions": (
+                "Place feet shoulder-width on the platform. Lower the sled until knees are about 90 "
+                "degrees, then press back without locking knees."
+            ),
             "required_equipment": "Machine",
             "target_muscle_group": "Legs",
             "recommendations": {
@@ -938,6 +1024,10 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
             "name": "Bicycle Crunch",
             "icon": "bicycle_crunch",
             "short_description": "Alternating crunch for core endurance.",
+            "execution_instructions": (
+                "Lie on your back with hands lightly behind head. Alternate elbow to opposite knee while "
+                "extending the other leg, keeping lower back down."
+            ),
             "required_equipment": "Bodyweight",
             "target_muscle_group": "Core",
             "recommendations": {
@@ -971,9 +1061,9 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
 
     exercise_stmt = """
         INSERT INTO exercises (
-            name, icon, short_description, required_equipment, target_muscle_group
+            name, icon, short_description, execution_instructions, required_equipment, target_muscle_group
         )
-        VALUES (?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?);
     """
     recommendation_stmt = """
         INSERT INTO goal_recommendations (
@@ -988,7 +1078,19 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
     """
 
     for exercise in exercises:
-        if exercise["name"].strip().lower() in existing_names:
+        name_key = exercise["name"].strip().lower()
+        instructions = exercise.get("execution_instructions", "")
+        if name_key in existing_names:
+            if instructions:
+                conn.execute(
+                    """
+                    UPDATE exercises
+                    SET execution_instructions = ?
+                    WHERE lower(name) = ?
+                      AND (execution_instructions IS NULL OR execution_instructions = '')
+                    """,
+                    (instructions, name_key),
+                )
             continue
         equipment_value = format_tag_list(normalize_equipment_list(exercise["required_equipment"]))
         muscle_value = format_tag_list(normalize_muscle_group_list(exercise["target_muscle_group"]))
@@ -998,6 +1100,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
                 exercise["name"],
                 exercise["icon"],
                 exercise["short_description"],
+                instructions,
                 equipment_value or exercise["required_equipment"],
                 muscle_value or exercise["target_muscle_group"],
             ),
@@ -1016,7 +1119,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
                     recommendation.get("recommended_time_seconds"),
                 ),
             )
-        existing_names.add(exercise["name"].strip().lower())
+        existing_names.add(name_key)
 
     conn.commit()
 
@@ -1128,7 +1231,8 @@ def fetch_all(conn: sqlite3.Connection) -> list[tuple]:
     """Helper for quick manual inspection when debugging."""
     return conn.execute(
         """
-        SELECT e.name, e.icon, e.short_description, e.required_equipment, e.target_muscle_group,
+        SELECT e.name, e.icon, e.short_description, e.execution_instructions,
+               e.required_equipment, e.target_muscle_group,
                r.goal, r.suitability_rating, r.recommended_sets,
                r.recommended_reps_per_set, r.recommended_time_seconds
         FROM exercises e
@@ -1142,6 +1246,7 @@ def add_exercise(
     *,
     name: str,
     short_description: str,
+    execution_instructions: str = "",
     required_equipment: Iterable[str] | str,
     target_muscle_group: Iterable[str] | str,
     goal: str,
@@ -1162,16 +1267,31 @@ def add_exercise(
     """
     if goal_ratings is None:
         goal_ratings = {}
+    execution_instructions = (execution_instructions or "").strip()
     fallback_rating = suitability_rating if suitability_rating is not None else DEFAULT_GOAL_RATING
     equipment_value = format_tag_list(normalize_equipment_list(required_equipment)) or str(required_equipment)
     muscle_value = format_tag_list(normalize_muscle_group_list(target_muscle_group)) or str(target_muscle_group)
     with get_connection(db_path) as conn:
         cursor = conn.execute(
             """
-            INSERT INTO exercises (name, icon, short_description, required_equipment, target_muscle_group)
-            VALUES (?, ?, ?, ?, ?);
+            INSERT INTO exercises (
+                name,
+                icon,
+                short_description,
+                execution_instructions,
+                required_equipment,
+                target_muscle_group
+            )
+            VALUES (?, ?, ?, ?, ?, ?);
             """,
-            (name, icon, short_description, equipment_value, muscle_value),
+            (
+                name,
+                icon,
+                short_description,
+                execution_instructions,
+                equipment_value,
+                muscle_value,
+            ),
         )
         exercise_id = cursor.lastrowid
         for goal_code in GOALS:

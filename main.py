@@ -207,6 +207,10 @@ KV = """
                 text_size: self.width, None
                 size_hint_y: None
                 height: self.texture_size[1]
+            WrapLabel:
+                text: "Execution: {}".format(root.execution_instructions or "No directions provided.")
+                color: 0.18, 0.18, 0.26, 1
+                font_size: "13sp"
     GridLayout:
         cols: 3
         spacing: dp(6)
@@ -720,6 +724,13 @@ KV = """
                 WrapLabel:
                     text: root.description
                     color: 0.16, 0.18, 0.24, 1
+                WrapLabel:
+                    text: "Execution directions"
+                    color: 0.12, 0.14, 0.22, 1
+                    bold: True
+                WrapLabel:
+                    text: root.execution_instructions or "No directions provided."
+                    color: 0.16, 0.18, 0.24, 1
                 GridLayout:
                     cols: 2
                     spacing: dp(8)
@@ -924,6 +935,13 @@ KV = """
                         radius: [10,]
                 WrapLabel:
                     text: app.root.live_exercise_description
+                    color: 0.14, 0.16, 0.24, 1
+                WrapLabel:
+                    text: "Execution directions"
+                    color: 0.12, 0.14, 0.22, 1
+                    bold: True
+                WrapLabel:
+                    text: app.root.live_exercise_instructions or "No directions provided."
                     color: 0.14, 0.16, 0.24, 1
                 WrapLabel:
                     text: app.root.live_recommendation_display
@@ -1337,7 +1355,7 @@ KV = """
                 size_hint_y: None
                 height: dp(22)
             Label:
-                text: "Defaults: rating 5. Optional fields default to empty."
+                text: "Defaults: rating 5. Directions required."
                 color: 0.2, 0.2, 0.28, 1
                 size_hint_y: None
                 height: dp(20)
@@ -1363,6 +1381,15 @@ KV = """
                     size_hint_y: None
                     height: dp(64)
                     hint_text: "Short overview"
+                WrapLabel:
+                    text: "Execution directions"
+                    color: 0.18, 0.18, 0.22, 1
+                TextInput:
+                    id: instructions_input
+                    multiline: True
+                    size_hint_y: None
+                    height: dp(90)
+                    hint_text: "Step-by-step directions"
                 WrapLabel:
                     text: "Muscle group (choose known)"
                     color: 0.18, 0.18, 0.22, 1
@@ -2064,6 +2091,7 @@ class ExerciseCard(BoxLayout):
     name = StringProperty()
     icon_source = StringProperty("")
     description = StringProperty()
+    execution_instructions = StringProperty()
     goal_label = StringProperty()
     muscle_group = StringProperty()
     equipment = StringProperty()
@@ -2135,6 +2163,7 @@ class RecommendationCard(BoxLayout):
     name = StringProperty()
     icon_source = StringProperty("")
     description = StringProperty()
+    execution_instructions = StringProperty()
     muscle_group = StringProperty()
     equipment = StringProperty()
     suitability = StringProperty()
@@ -2268,6 +2297,7 @@ class GoalPromptModal(ModalView):
 class RecommendationDetailsModal(ModalView):
     exercise_name = StringProperty("")
     description = StringProperty("")
+    execution_instructions = StringProperty("")
     muscle_group = StringProperty("")
     equipment = StringProperty("")
     goal_label = StringProperty("")
@@ -2359,6 +2389,7 @@ class RootWidget(BoxLayout):
     live_equipment_display = StringProperty("")
     live_recommendation_display = StringProperty("")
     live_exercise_description = StringProperty("")
+    live_exercise_instructions = StringProperty("")
     live_details_expanded = BooleanProperty(False)
     live_exercise_target_display = StringProperty("—")
     live_set_target_display = StringProperty("—")
@@ -2558,6 +2589,7 @@ class RootWidget(BoxLayout):
             name,
             icon,
             description,
+            execution_instructions,
             equipment,
             muscle_group,
             goal,
@@ -2590,6 +2622,7 @@ class RootWidget(BoxLayout):
                     "icon": icon_value,
                     "icon_source": icon_source,
                     "description": description,
+                    "execution_instructions": execution_instructions or "",
                     "equipment": equipment_display,
                     "equipment_items": set(equipment_items),
                     "muscle_group": muscle_display,
@@ -2900,6 +2933,7 @@ class RootWidget(BoxLayout):
                         "name": record["name"],
                         "icon_source": record.get("icon_source", ""),
                         "description": record["description"],
+                        "execution_instructions": record.get("execution_instructions", ""),
                         "goal_label": record["goal_label"],
                         "muscle_group": record["muscle_group"],
                         "equipment": record["equipment"],
@@ -2921,6 +2955,7 @@ class RootWidget(BoxLayout):
                         "name": record["name"],
                         "icon_source": record.get("icon_source", ""),
                         "description": record["description"],
+                        "execution_instructions": record.get("execution_instructions", ""),
                         "goal_label": record["goal_label"],
                         "muscle_group": record["muscle_group"],
                         "equipment": record["equipment"],
@@ -3581,6 +3616,7 @@ class RootWidget(BoxLayout):
                     "icon": record.get("icon", ""),
                     "icon_source": record.get("icon_source", ""),
                     "description": record["description"],
+                    "execution_instructions": record.get("execution_instructions", ""),
                     "muscle_group": record["muscle_group"],
                     "equipment": record["equipment"],
                     "goal_label": record["goal_label"],
@@ -3624,6 +3660,7 @@ class RootWidget(BoxLayout):
         modal = RecommendationDetailsModal()
         modal.exercise_name = rec.get("name", "")
         modal.description = rec.get("description", "")
+        modal.execution_instructions = rec.get("execution_instructions", "")
         modal.muscle_group = rec.get("muscle_group", "")
         modal.equipment = rec.get("equipment", "")
         modal.goal_label = rec.get("goal_label", "")
@@ -3672,6 +3709,7 @@ class RootWidget(BoxLayout):
             "name": rec["name"],
             "icon": rec.get("icon", ""),
             "icon_source": icon_source,
+            "execution_instructions": rec.get("execution_instructions", ""),
             "muscle_group": rec.get("muscle_group", ""),
             "equipment": rec.get("equipment", ""),
             "goal_label": rec.get("goal_label", ""),
@@ -3755,6 +3793,7 @@ class RootWidget(BoxLayout):
                     {
                         "name": match["name"],
                         "description": match["description"],
+                        "execution_instructions": match.get("execution_instructions", ""),
                         "muscle_group": match["muscle_group"],
                         "equipment": match["equipment"],
                         "icon": match.get("icon", ""),
@@ -3843,6 +3882,7 @@ class RootWidget(BoxLayout):
                     "icon": record.get("icon", ""),
                     "icon_source": record.get("icon_source", ""),
                     "description": record.get("description", ""),
+                    "execution_instructions": record.get("execution_instructions", ""),
                     "muscle_group": record.get("muscle_group", ""),
                     "equipment": record.get("equipment", ""),
                     "sets": record.get("sets") or item.get("sets") or 3,
@@ -3890,6 +3930,7 @@ class RootWidget(BoxLayout):
         ids = self._add_screen().ids
         ids.name_input.text = ""
         ids.description_input.text = ""
+        ids.instructions_input.text = ""
         ids.sets_input.text = ""
         ids.reps_input.text = ""
         ids.time_input.text = ""
@@ -3906,6 +3947,7 @@ class RootWidget(BoxLayout):
         ids = self._add_screen().ids
         name = ids.name_input.text.strip()
         description = ids.description_input.text.strip()
+        instructions = ids.instructions_input.text.strip()
         equipment = ids.equipment_add_spinner.text.strip() or "Bodyweight"
         goal_label = ids.goal_add_spinner.text
         goal = self._goal_label_map.get(goal_label)
@@ -3915,8 +3957,11 @@ class RootWidget(BoxLayout):
             icon_choice = ids.icon_spinner.text.strip()
         icon = "" if icon_choice in {"", "No icon", "Select icon", "No icons found"} else icon_choice
 
-        if not (name and description and muscle_group and goal and equipment):
-            self._set_status("Name, description, muscle group, equipment, and goal are required.", error=True)
+        if not (name and description and instructions and muscle_group and goal and equipment):
+            self._set_status(
+                "Name, description, execution directions, muscle group, equipment, and goal are required.",
+                error=True,
+            )
             return
 
         if muscle_group not in self.muscle_choice_options:
@@ -3951,6 +3996,7 @@ class RootWidget(BoxLayout):
             exercise_database.add_exercise(
                 name=name,
                 short_description=description,
+                execution_instructions=instructions,
                 required_equipment=equipment,
                 target_muscle_group=muscle_group,
                 goal=goal,
@@ -4237,6 +4283,7 @@ class RootWidget(BoxLayout):
             self.live_state_display = "Not started"
             self.live_upcoming_display = "None"
             self.live_exercise_description = ""
+            self.live_exercise_instructions = ""
             self.live_exercise_target_display = "—"
             self.live_set_target_display = "—"
             self.live_exercise_timer = "00:00"
@@ -4259,6 +4306,7 @@ class RootWidget(BoxLayout):
         self.live_equipment_display = exercise.get("equipment", "")
         self.live_recommendation_display = exercise.get("recommendation", "")
         self.live_exercise_description = exercise.get("description", "")
+        self.live_exercise_instructions = exercise.get("execution_instructions", "")
         expected_seconds = self._exercise_expected_duration_seconds(exercise)
         self.live_exercise_target_display = f"~{self._format_time(expected_seconds)}" if expected_seconds else "—"
         set_target = self._live_set_target_seconds or self._compute_set_target_seconds(exercise)
