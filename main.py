@@ -92,7 +92,7 @@ KV = """
         Line:
             width: root.thickness
             cap: "round"
-            circle: (self.center_x, self.center_y, min(self.width, self.height) / 2 - root.thickness / 2, 0, 360 * root.progress)
+            circle: (self.center_x, self.center_y, min(self.width, self.height) / 2 - root.thickness / 2, 0, -360 * root.progress)
 
 <GridInfoLabel@Label>:
     text_size: self.size
@@ -890,6 +890,19 @@ KV = """
                     thickness: dp(4)
                     color: app.root.live_progress_color
                     progress: app.root.live_exercise_progress
+                    BoxLayout:
+                        size_hint: None, None
+                        size: self.parent.size
+                        pos: self.parent.pos
+                        padding: dp(12)
+                        Label:
+                            text: app.root.live_progress_timer
+                            font_size: "16sp"
+                            bold: True
+                            color: 0.1, 0.12, 0.2, 1
+                            halign: "center"
+                            valign: "middle"
+                            text_size: self.size
                 BoxLayout:
                     orientation: "vertical"
                     spacing: dp(8)
@@ -2291,6 +2304,7 @@ class RootWidget(BoxLayout):
     live_rest_timer = StringProperty("—")
     live_current_set_display = StringProperty("")
     live_exercise_progress = NumericProperty(0.0)
+    live_progress_timer = StringProperty("00:00")
     live_progress_color = ListProperty((0.18, 0.4, 0.85, 1))
     live_instruction = StringProperty("")
     live_tempo_hint = StringProperty("")
@@ -4007,13 +4021,31 @@ class RootWidget(BoxLayout):
         if self.live_active and self.live_started:
             if self._live_phase in ("rest", "between_exercises"):
                 self.live_progress_color = (0.78, 0.22, 0.22, 1)
+                self.live_progress_timer = self._format_time(self._live_rest_remaining)
             elif self._live_phase == "set":
                 self.live_progress_color = (0.18, 0.5, 0.25, 1)
+                target = float(self._live_set_target_seconds or 0)
+                if target > 0:
+                    remaining = max(0.0, target - self._live_set_elapsed)
+                    self.live_progress_timer = self._format_time(remaining)
+                else:
+                    self.live_progress_timer = self._format_time(self._live_set_elapsed)
             else:
                 self.live_progress_color = (0.18, 0.4, 0.85, 1)
+                self.live_progress_timer = "00:00"
         else:
             self.live_progress_color = (0.18, 0.4, 0.85, 1)
-        self.live_exercise_progress = self._compute_live_progress_ratio()
+            self.live_progress_timer = "00:00"
+
+        ratio = self._compute_live_progress_ratio()
+        try:
+            Animation.cancel_all(self, "live_exercise_progress")
+        except Exception:
+            pass
+        if self.live_active and self.live_started:
+            Animation(live_exercise_progress=ratio, duration=0.45, t="linear").start(self)
+        else:
+            self.live_exercise_progress = ratio
 
     def _update_live_labels(self) -> None:
         exercise = self._current_live_exercise()
@@ -4037,6 +4069,8 @@ class RootWidget(BoxLayout):
             self.live_set_timer = "00:00"
             self.live_rest_timer = "—"
             self.live_exercise_progress = 0.0
+            self.live_progress_timer = "00:00"
+            self.live_progress_color = (0.18, 0.4, 0.85, 1)
             return
         total_sets = exercise.get("sets") or 1
         self._live_total_sets = total_sets
@@ -4329,7 +4363,13 @@ class RootWidget(BoxLayout):
         self.live_set_timer = self._format_time(self._live_set_elapsed)
         self.live_exercise_timer = self._format_time(self._live_exercise_elapsed)
         self.live_upcoming_display = "Session ended"
+        try:
+            Animation.cancel_all(self, "live_exercise_progress")
+        except Exception:
+            pass
         self.live_exercise_progress = 0.0
+        self.live_progress_timer = "00:00"
+        self.live_progress_color = (0.18, 0.4, 0.85, 1)
         attempts = self._collect_attempts(mark_unattempted_skipped=early)
         completed_count = sum(1 for att in attempts if att.get("status") == "completed")
         skipped_count = sum(1 for att in attempts if att.get("status") == "skipped")
