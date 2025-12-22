@@ -41,6 +41,12 @@ KV = """
     background_down: ""
     background_color: 0.92, 0.96, 1, 1
     color: 0, 0, 0, 1
+    canvas.after:
+        Color:
+            rgba: 0.75, 0.8, 0.9, 1
+        Line:
+            points: [self.x + dp(6), self.y, self.right - dp(6), self.y]
+            width: 1
 
 <Spinner>:
     option_cls: "AppSpinnerOption"
