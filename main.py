@@ -4,6 +4,7 @@ import calendar
 import sqlite3
 from datetime import date, datetime
 from functools import partial
+from pathlib import Path
 from typing import Any, Optional
 
 from kivy.config import Config
@@ -105,21 +106,37 @@ KV = """
             pos: self.pos
             size: self.size
             radius: [8,]
-    Label:
-        text: root.name
-        font_size: "18sp"
-        bold: True
-        color: 0.1, 0.12, 0.2, 1
-        text_size: self.width, None
-        halign: "left"
+    BoxLayout:
+        orientation: "horizontal"
+        spacing: dp(10)
         size_hint_y: None
-        height: self.texture_size[1]
-    Label:
-        text: root.description
-        color: 0.2, 0.2, 0.24, 1
-        text_size: self.width, None
-        size_hint_y: None
-        height: self.texture_size[1]
+        height: self.minimum_height
+        Image:
+            source: root.icon_source
+            size_hint: None, None
+            size: (dp(64), dp(64)) if root.icon_source else (0, 0)
+            allow_stretch: True
+            keep_ratio: True
+            opacity: 1 if root.icon_source else 0
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            Label:
+                text: root.name
+                font_size: "18sp"
+                bold: True
+                color: 0.1, 0.12, 0.2, 1
+                text_size: self.width, None
+                halign: "left"
+                size_hint_y: None
+                height: self.texture_size[1]
+            Label:
+                text: root.description
+                color: 0.2, 0.2, 0.24, 1
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
     GridLayout:
         cols: 3
         spacing: dp(6)
@@ -739,7 +756,7 @@ KV = """
                 padding: dp(12)
                 spacing: dp(6)
                 size_hint_y: None
-                height: dp(210)
+                height: self.minimum_height
                 canvas.before:
                     Color:
                         rgba: 0.92, 0.97, 1, 1
@@ -754,11 +771,19 @@ KV = """
                     color: 0.08, 0.12, 0.22, 1
                     size_hint_y: None
                     height: self.texture_size[1]
+                Image:
+                    source: app.root.live_icon_source
+                    size_hint_y: None
+                    height: dp(140) if app.root.live_icon_source else dp(0)
+                    allow_stretch: True
+                    keep_ratio: True
+                    opacity: 1 if app.root.live_icon_source else 0
                 Label:
                     text: app.root.live_icon_display
                     color: 0.18, 0.2, 0.32, 1
                     size_hint_y: None
-                    height: self.texture_size[1]
+                    height: self.texture_size[1] if not app.root.live_icon_source else dp(0)
+                    opacity: 0 if app.root.live_icon_source else 1
                 Label:
                     text: "Target: {} | Equipment: {}".format(app.root.live_muscle_display, app.root.live_equipment_display)
                     color: 0.18, 0.18, 0.24, 1
@@ -1851,6 +1876,7 @@ KV = """
 
 class ExerciseCard(BoxLayout):
     name = StringProperty()
+    icon_source = StringProperty("")
     description = StringProperty()
     goal_label = StringProperty()
     muscle_group = StringProperty()
@@ -2127,6 +2153,7 @@ class RootWidget(BoxLayout):
     live_state_display = StringProperty("Not started")
     live_exercise_title = StringProperty("No exercise running")
     live_icon_display = StringProperty("")
+    live_icon_source = StringProperty("")
     live_muscle_display = StringProperty("")
     live_equipment_display = StringProperty("")
     live_recommendation_display = StringProperty("")
@@ -2186,6 +2213,7 @@ class RootWidget(BoxLayout):
         self._live_current_logged = False
         self.live_rest_seconds = 30
         self.live_rest_setting_text = str(int(self.live_rest_seconds))
+        self._icon_lookup = self._build_icon_lookup()
         self._signal_clear_event = None
         self._live_phase = "idle"
         self._update_rec_plan_height()
@@ -2200,6 +2228,46 @@ class RootWidget(BoxLayout):
         }
         cleaned = muscle_group.strip()
         return replacements.get(cleaned, cleaned)
+
+    def _normalize_icon_key(self, value: str) -> str:
+        return "".join(ch.lower() for ch in value if ch.isalnum())
+
+    def _build_icon_lookup(self) -> dict[str, str]:
+        icon_dir = Path(__file__).with_name("Pictures")
+        if not icon_dir.is_dir():
+            return {}
+        lookup: dict[str, str] = {}
+        for entry in icon_dir.iterdir():
+            if not entry.is_file():
+                continue
+            if entry.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
+                continue
+            key = self._normalize_icon_key(entry.stem)
+            if key and key not in lookup:
+                lookup[key] = str(entry)
+        return lookup
+
+    def _resolve_icon_source(self, icon_name: str) -> str:
+        if not icon_name:
+            return ""
+        key = self._normalize_icon_key(icon_name)
+        if not key:
+            return ""
+        path = self._icon_lookup.get(key)
+        if path:
+            return path
+        if not key.endswith("s"):
+            path = self._icon_lookup.get(f"{key}s")
+            if path:
+                return path
+        if key.endswith("s"):
+            path = self._icon_lookup.get(key[:-1])
+            if path:
+                return path
+        for candidate in sorted(self._icon_lookup):
+            if candidate.startswith(key) or key.startswith(candidate):
+                return self._icon_lookup[candidate]
+        return ""
 
     def _preferred_goal_label(self) -> str:
         """
@@ -2276,6 +2344,7 @@ class RootWidget(BoxLayout):
                 {
                     "name": name,
                     "icon": icon or "",
+                    "icon_source": self._resolve_icon_source(icon or ""),
                     "description": description,
                     "equipment": equipment,
                     "muscle_group": muscle_group,
@@ -2561,6 +2630,7 @@ class RootWidget(BoxLayout):
                 filtered.append(
                     {
                         "name": record["name"],
+                        "icon_source": record.get("icon_source", ""),
                         "description": record["description"],
                         "goal_label": record["goal_label"],
                         "muscle_group": record["muscle_group"],
@@ -2583,6 +2653,7 @@ class RootWidget(BoxLayout):
                 filtered.append(
                     {
                         "name": record["name"],
+                        "icon_source": record.get("icon_source", ""),
                         "description": record["description"],
                         "goal_label": record["goal_label"],
                         "muscle_group": record["muscle_group"],
@@ -3413,6 +3484,7 @@ class RootWidget(BoxLayout):
                 {
                     "name": record["name"],
                     "icon": record.get("icon", ""),
+                    "icon_source": record.get("icon_source", ""),
                     "description": record.get("description", ""),
                     "muscle_group": record.get("muscle_group", ""),
                     "equipment": record.get("equipment", ""),
@@ -3732,6 +3804,7 @@ class RootWidget(BoxLayout):
             self.live_progress_display = "No session running"
             self.live_exercise_title = "No exercise running"
             self.live_icon_display = ""
+            self.live_icon_source = ""
             self.live_muscle_display = ""
             self.live_equipment_display = ""
             self.live_recommendation_display = ""
@@ -3750,7 +3823,9 @@ class RootWidget(BoxLayout):
         self._live_total_sets = total_sets
         self.live_progress_display = f"Exercise {self._live_current_index + 1}/{total_exercises} – {exercise.get('name', '')}"
         self.live_exercise_title = exercise.get("name", "Exercise")
-        self.live_icon_display = f"Icon: {exercise.get('icon')}" if exercise.get("icon") else "No icon available"
+        icon_source = exercise.get("icon_source") or self._resolve_icon_source(exercise.get("icon", ""))
+        self.live_icon_source = icon_source
+        self.live_icon_display = "No icon available" if not icon_source else ""
         self.live_muscle_display = exercise.get("muscle_group", "")
         self.live_equipment_display = exercise.get("equipment", "")
         self.live_recommendation_display = exercise.get("recommendation", "")
