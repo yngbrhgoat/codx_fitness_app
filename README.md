@@ -20,7 +20,7 @@ Die wichtigsten Funktionsbereiche im Abgleich mit den Anforderungen:
 
 - Verwaltung einer lokalen Übungsdatenbank mit:
   - Name
-  - Bild/Icon/Animation (falls vorhanden)
+  - Icon
   - Beschreibung
   - Benötigte Ausrüstung (z. B. „Hantel“, „keine“)
   - Ziel-Muskelgruppe (Brust, Rücken, Beine, Schultern, Arme, Core, Ganzkörper, …)
@@ -57,17 +57,17 @@ Die wichtigsten Funktionsbereiche im Abgleich mit den Anforderungen:
 
 - Benutzer wählt:
   - Ziel: `Muskelaufbau`, `Gewichtsverlust`, `Kraftsteigerung`, `Ausdauersteigerung`
-  - Maximale verfügbare Trainingszeit (Minuten)
+  - Gewünschte Trainingszeit (Minuten)
 - Alle passenden Übungen werden bewertet anhand:
   - Eignungsbewertung (0–10)
   - Neuheit (nicht kürzlich ausgeführte Übungen werden bevorzugt)
-- Kombinierter Empfehlungs-Score (siehe Abschnitt *Empfehlungsalgorithmus*)
+- Kombinierter Empfehlungs-Score
 - Ausgabe: sortierte Liste empfohlener Übungen
 - Benutzer wählt Übungen für die Session aus, kann:
   - Übungen hinzufügen/entfernen
-  - Reihenfolge frei ändern (Drag & Drop / Buttons)
+  - Reihenfolge frei ändern
 - Berechnung der geschätzten Gesamttrainingszeit
-- Sicherstellung, dass die geschätzte Zeit die Maximalzeit **nicht wesentlich** überschreitet
+- Sicherstellung, dass die geschätzte Zeit die gewünschte Zeit **nicht wesentlich** über/-unterschreitet
 - Start-Schaltfläche zum Übergang in den Live-Modus
 
 ### 4. Live-Modus
@@ -75,7 +75,7 @@ Die wichtigsten Funktionsbereiche im Abgleich mit den Anforderungen:
 - Zeigt nacheinander alle ausgewählten Übungen in der vorgegebenen Reihenfolge
 - Für jede Übung werden angezeigt:
   - Name
-  - Bild/Icon (falls vorhanden)
+  - Icon (falls vorhanden)
   - Anvisierte Muskelgruppe(n)
   - Benötigte Ausrüstung
   - Empfohlene Sätze und Wiederholungen
@@ -132,7 +132,6 @@ Die wichtigsten Funktionsbereiche im Abgleich mit den Anforderungen:
 - Programmiersprache: **Python 3.10+**
 - GUI-Framework: **Kivy**
 - Datenbank: **SQLite** (lokale Datei)
-- Numerik & Statistik: **NumPy**
 - Tests: **pytest** (oder `unittest`, je nach Umsetzung)
 - Paketierung: **pyproject.toml** mit `setuptools` oder `hatchling` als Build-Backend
 
