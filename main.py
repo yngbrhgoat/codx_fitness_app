@@ -887,7 +887,8 @@ KV = """
                 ProgressRing:
                     size_hint: None, None
                     size: dp(110), dp(110)
-                    thickness: dp(7)
+                    thickness: dp(4)
+                    color: app.root.live_progress_color
                     progress: app.root.live_exercise_progress
                 BoxLayout:
                     orientation: "vertical"
@@ -2290,6 +2291,7 @@ class RootWidget(BoxLayout):
     live_rest_timer = StringProperty("—")
     live_current_set_display = StringProperty("")
     live_exercise_progress = NumericProperty(0.0)
+    live_progress_color = ListProperty((0.18, 0.4, 0.85, 1))
     live_instruction = StringProperty("")
     live_tempo_hint = StringProperty("")
     live_hint_text = StringProperty("")
@@ -3988,20 +3990,29 @@ class RootWidget(BoxLayout):
         if not exercise or not self.live_active or not self.live_started:
             return 0.0
         if self._live_phase in ("rest", "between_exercises"):
-            return 1.0
-        reps = exercise.get("reps")
-        time_seconds = exercise.get("time_seconds")
-        if reps:
-            duration = self._live_set_target_seconds or max(1, reps * 4)
-            per_rep = duration / max(reps, 1)
-            completed_reps = int(self._live_set_elapsed // max(per_rep, 1))
-            ratio = completed_reps / max(reps, 1)
-        else:
-            target = float(time_seconds or self._live_set_target_seconds or 0)
-            ratio = (self._live_set_elapsed / target) if target > 0 else 0.0
+            total = float(self.live_rest_seconds or 0)
+            if total <= 0:
+                return 0.0
+            elapsed = max(0.0, total - self._live_rest_remaining)
+            ratio = elapsed / total
+            return max(0.0, min(1.0, ratio))
+        target = float(self._live_set_target_seconds or 0)
+        if target <= 0:
+            return 0.0
+        remaining = max(0.0, target - self._live_set_elapsed)
+        ratio = remaining / target
         return max(0.0, min(1.0, ratio))
 
     def _update_live_progress(self) -> None:
+        if self.live_active and self.live_started:
+            if self._live_phase in ("rest", "between_exercises"):
+                self.live_progress_color = (0.78, 0.22, 0.22, 1)
+            elif self._live_phase == "set":
+                self.live_progress_color = (0.18, 0.5, 0.25, 1)
+            else:
+                self.live_progress_color = (0.18, 0.4, 0.85, 1)
+        else:
+            self.live_progress_color = (0.18, 0.4, 0.85, 1)
         self.live_exercise_progress = self._compute_live_progress_ratio()
 
     def _update_live_labels(self) -> None:
@@ -4094,7 +4105,7 @@ class RootWidget(BoxLayout):
 
     def _start_live_clock(self) -> None:
         self._stop_live_clock()
-        self._live_clock = Clock.schedule_interval(self._tick_live, 1.0)
+        self._live_clock = Clock.schedule_interval(self._tick_live, 0.5)
 
     def _stop_live_clock(self) -> None:
         if self._live_clock is not None:
