@@ -290,10 +290,16 @@ KV = """
             pos: self.pos
             size: self.size
             radius: [6,]
+    Image:
+        source: root.icon_source
+        size_hint: None, None
+        size: (dp(42), dp(42)) if root.icon_source else (0, 0)
+        fit_mode: "contain"
+        opacity: 1 if root.icon_source else 0
     Label:
         text: root.display
         color: 0.18, 0.18, 0.24, 1
-        text_size: self.width, None
+        text_size: self.width, self.height
         halign: "left"
         valign: "middle"
     Button:
@@ -1398,7 +1404,7 @@ KV = """
                     size_hint_y: None
                     height: dp(4)
         AnchorLayout:
-            anchor_y: "bottom"
+            anchor_y: "top"
             size_hint_y: 0.45
             BoxLayout:
                 orientation: "vertical"
@@ -1557,50 +1563,73 @@ KV = """
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
-                spacing: dp(8)
-                Button:
-                    text: "Apply filter"
-                    on_release: app.root.apply_history_filter()
+                spacing: dp(10)
+                padding: dp(12), 0, dp(12), 0
                 Button:
                     text: "Clear filter"
                     on_release: app.root.clear_history_filter()
+                Button:
+                    text: "Apply filter"
+                    on_release: app.root.apply_history_filter()
             BoxLayout:
                 size_hint_y: None
-                height: dp(70)
-                spacing: dp(12)
+                height: self.minimum_height
+                padding: dp(12)
+                spacing: dp(6)
+                canvas.before:
+                    Color:
+                        rgba: 0.93, 0.96, 1, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
                 BoxLayout:
                     orientation: "vertical"
                     spacing: dp(4)
+                    size_hint_y: None
+                    height: self.minimum_height
                     Label:
                         text: "Stats"
                         bold: True
+                        font_size: "16sp"
                         color: 0.12, 0.14, 0.22, 1
+                        size_hint_y: None
+                        height: dp(22)
+                    Label:
+                        text: "Total workouts: [b]{}[/b]".format(app.root.stats_total_workouts)
+                        markup: True
+                        font_size: "15sp"
+                        color: 0.16, 0.18, 0.26, 1
+                        text_size: self.width, None
+                        halign: "left"
                         size_hint_y: None
                         height: dp(20)
                     Label:
-                        text: "Total workouts: {}".format(app.root.stats_total_workouts)
-                        color: 0.18, 0.18, 0.24, 1
+                        text: "Total time: [b]{} min[/b]".format(app.root.stats_total_minutes)
+                        markup: True
+                        font_size: "15sp"
+                        color: 0.16, 0.18, 0.26, 1
+                        text_size: self.width, None
+                        halign: "left"
                         size_hint_y: None
-                        height: dp(18)
+                        height: dp(20)
                     Label:
-                        text: "Total time: {} min".format(app.root.stats_total_minutes)
-                        color: 0.18, 0.18, 0.24, 1
+                        text: "Top exercise: [b]{}[/b]".format(app.root.stats_top_exercise)
+                        markup: True
+                        font_size: "15sp"
+                        color: 0.16, 0.18, 0.26, 1
+                        text_size: self.width, None
+                        halign: "left"
                         size_hint_y: None
-                        height: dp(18)
-                    Label:
-                        text: "Top exercise: {}".format(app.root.stats_top_exercise)
-                        color: 0.18, 0.18, 0.24, 1
-                        size_hint_y: None
-                        height: dp(18)
-            Button:
-                text: "Log a completed workout"
-                size_hint_y: None
-                height: dp(40)
-                on_release: app.root.open_workout_log_modal()
+                        height: dp(20)
             BoxLayout:
                 size_hint_y: None
                 height: dp(40)
-                spacing: dp(8)
+                spacing: dp(10)
+                padding: dp(12), 0, dp(12), 0
+                Button:
+                    text: "Log a completed workout"
+                    on_release: app.root.open_workout_log_modal()
                 Button:
                     text: "Refresh history"
                     on_release: app.root._load_history()
@@ -1652,11 +1681,11 @@ KV = """
             height: dp(40)
             spacing: dp(8)
             Button:
-                text: "Generate recommendations"
-                on_release: app.root.handle_generate_recommendations()
-            Button:
                 text: "Clear plan"
                 on_release: app.root.clear_recommendation_plan()
+            Button:
+                text: "Generate recommendations"
+                on_release: app.root.handle_generate_recommendations()
         WrapLabel:
             text: app.root.rec_status_text
             color: app.root.rec_status_color
@@ -1679,12 +1708,10 @@ KV = """
                 size_hint_y: None
                 height: self.minimum_height
                 spacing: dp(10)
-        Label:
-            text: "Your training plan (reorder with Up/Down)"
-            bold: True
-            color: 0.12, 0.14, 0.22, 1
-            size_hint_y: None
-            height: dp(22)
+        WrapLabel:
+            text: "Add your first exercise to get started." if not app.root.rec_plan else "Your training plan (reorder with Up/Down)"
+            bold: False if not app.root.rec_plan else True
+            color: (0.35, 0.35, 0.4, 1) if not app.root.rec_plan else (0.12, 0.14, 0.22, 1)
         RecycleView:
             id: rec_plan_list
             viewclass: "PlanItem"
@@ -1950,6 +1977,7 @@ class SummaryScreen(Screen):
 
 class PlanItem(BoxLayout):
     name = StringProperty()
+    icon_source = StringProperty("")
     display = StringProperty()
     index = StringProperty()
     pass
@@ -2393,11 +2421,15 @@ class RootWidget(BoxLayout):
             if time_seconds is not None:
                 recommendation_parts.append(f"{time_seconds}s hold")
             recommendation = " • ".join(recommendation_parts) if recommendation_parts else "Adjust volume to preference"
+            icon_value = icon or ""
+            icon_source = self._resolve_icon_source(icon_value)
+            if not icon_source and name:
+                icon_source = self._resolve_icon_source(name)
             records.append(
                 {
                     "name": name,
-                    "icon": icon or "",
-                    "icon_source": self._resolve_icon_source(icon or ""),
+                    "icon": icon_value,
+                    "icon_source": icon_source,
                     "description": description,
                     "equipment": equipment,
                     "muscle_group": muscle_group,
@@ -3406,9 +3438,11 @@ class RootWidget(BoxLayout):
         if any(item["name"] == name for item in self.rec_plan):
             self._set_rec_status(f"{name} is already in the plan.", error=True)
             return
+        icon_source = rec.get("icon_source") or self._resolve_icon_source(rec.get("icon", "") or rec.get("name", ""))
         plan_item = {
             "name": rec["name"],
             "icon": rec.get("icon", ""),
+            "icon_source": icon_source,
             "muscle_group": rec.get("muscle_group", ""),
             "equipment": rec.get("equipment", ""),
             "goal_label": rec.get("goal_label", ""),
@@ -3431,6 +3465,8 @@ class RootWidget(BoxLayout):
         rv.data = [
             {
                 "name": item["name"],
+                "icon_source": item.get("icon_source")
+                or self._resolve_icon_source(item.get("icon", "") or item.get("name", "")),
                 "display": f'{item["name"]} ({item["estimated_minutes"]} min)',
                 "index": str(idx),
             }
@@ -3888,7 +3924,9 @@ class RootWidget(BoxLayout):
         self._live_total_sets = total_sets
         self.live_progress_display = f"Exercise {self._live_current_index + 1}/{total_exercises} – {exercise.get('name', '')}"
         self.live_exercise_title = exercise.get("name", "Exercise")
-        icon_source = exercise.get("icon_source") or self._resolve_icon_source(exercise.get("icon", ""))
+        icon_source = exercise.get("icon_source") or self._resolve_icon_source(
+            exercise.get("icon", "") or exercise.get("name", "")
+        )
         self.live_icon_source = icon_source
         self.live_icon_display = "No icon available" if not icon_source else ""
         self.live_muscle_display = exercise.get("muscle_group", "")
