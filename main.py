@@ -92,7 +92,7 @@ KV = """
         Line:
             width: root.thickness
             cap: "round"
-            circle: (self.center_x, self.center_y, min(self.width, self.height) / 2 - root.thickness / 2, 0, -360 * root.progress)
+            circle: (self.center_x, self.center_y, min(self.width, self.height) / 2 - root.thickness / 2, 0, 360 * root.progress)
 
 <GridInfoLabel@Label>:
     text_size: self.size
@@ -983,12 +983,15 @@ KV = """
                         size: self.size
                         radius: [8,]
                 Button:
-                    text: "Start workout"
+                    text: "START WORKOUT"
                     size_hint: None, None
-                    width: dp(160) if app.root.live_active and not app.root.live_started else dp(0)
-                    height: dp(34)
+                    width: dp(230) if app.root.live_active and not app.root.live_started else dp(0)
+                    height: dp(46) if app.root.live_active and not app.root.live_started else dp(0)
                     opacity: 1 if app.root.live_active and not app.root.live_started else 0
                     disabled: not app.root.live_active or app.root.live_started
+                    font_size: "18sp"
+                    bold: True
+                    background_color: 0.12, 0.72, 0.22, 1
                     on_release: app.root.start_live_workout()
                 BoxLayout:
                     size_hint_x: None
@@ -4009,13 +4012,13 @@ class RootWidget(BoxLayout):
                 return 0.0
             elapsed = max(0.0, total - self._live_rest_remaining)
             ratio = elapsed / total
-            return max(0.0, min(1.0, ratio))
+            return -max(0.0, min(1.0, ratio))
         target = float(self._live_set_target_seconds or 0)
         if target <= 0:
             return 0.0
         remaining = max(0.0, target - self._live_set_elapsed)
         ratio = remaining / target
-        return max(0.0, min(1.0, ratio))
+        return -max(0.0, min(1.0, ratio))
 
     def _update_live_progress(self) -> None:
         if self.live_active and self.live_started:
