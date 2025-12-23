@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können.">
+    <list default="true" id="0314f889-1c24-4d0f-8172-0c21a925c2b1" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -340,7 +340,23 @@
       <option name="project" value="LOCAL" />
       <updated>1766427995061</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="hinzufügen von pyproject.toml">
+      <option name="closed" value="true" />
+      <created>1766438215553</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1766438215553</updated>
+    </task>
+    <task id="LOCAL-00037" summary="hinzufügen von License">
+      <option name="closed" value="true" />
+      <created>1766439651097</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1766439651097</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -355,7 +371,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Ein erster Test" />
     <MESSAGE value="Issue 1 wurde gefixt" />
     <MESSAGE value="Wo ist der Fehler?" />
     <MESSAGE value="Hinzufügen eines Bildschirms zum Durchsuchen aller Übungen mit Filterung bereitgestellt nach jeweils: Zieleignung, Muskelgruppe, Benötigte Ausrüstung" />
@@ -379,7 +394,9 @@
     <MESSAGE value="fehlerhafte Filterlogik im Browse-Screen beheben" />
     <MESSAGE value="hinzufügen für das Anzeigen für das Suchen in Filtern und keinem passenden Ergebnis" />
     <MESSAGE value="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können." />
-    <option name="LAST_COMMIT_MESSAGE" value="kleine horizontale Linie im Spinner, um die Auswahlmöglichkeiten besser unterscheiden zu können." />
+    <MESSAGE value="hinzufügen von pyproject.toml" />
+    <MESSAGE value="hinzufügen von License" />
+    <option name="LAST_COMMIT_MESSAGE" value="hinzufügen von License" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
