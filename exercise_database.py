@@ -56,11 +56,15 @@ _MUSCLE_ALIASES = {
 
 
 def _normalize_tag_key(value: str) -> str:
+    """Normalize a tag string into a lookup key."""
+    # Strip punctuation and collapse whitespace.
     cleaned = re.sub(r"[^a-z0-9]+", " ", value.lower())
     return " ".join(cleaned.split())
 
 
 def _strip_descriptor_words(token: str) -> str:
+    """Remove trailing descriptor words from a tag token."""
+    # Drop words like "focus" or "target" to improve matching.
     parts = token.split()
     while parts and parts[-1].lower() in _TAG_DESCRIPTOR_WORDS:
         parts.pop()
@@ -68,6 +72,8 @@ def _strip_descriptor_words(token: str) -> str:
 
 
 def _split_tag_string(value: str) -> list[str]:
+    """Split a tag string into cleaned tokens."""
+    # Normalize separators and trim descriptors for each token.
     text = re.sub(r"\([^)]*\)", "", value or "")
     text = text.replace("&", " and ").replace("/", ",")
     parts = re.split(r",|;|\band\b|\bwith\b|\+|\|", text, flags=re.IGNORECASE)
@@ -80,6 +86,8 @@ def _split_tag_string(value: str) -> list[str]:
 
 
 def _flatten_tag_input(value: Iterable[str] | str | None) -> list[str]:
+    """Flatten tag input from strings or iterables into tokens."""
+    # Accept strings or iterables and normalize them uniformly.
     if value is None:
         return []
     if isinstance(value, str):
@@ -93,6 +101,8 @@ def _flatten_tag_input(value: Iterable[str] | str | None) -> list[str]:
 
 
 def _dedupe_preserve_order(items: Iterable[str]) -> list[str]:
+    """Return items with duplicates removed while preserving order."""
+    # Use a set to keep the first occurrence of each item.
     seen: set[str] = set()
     deduped: list[str] = []
     for item in items:
@@ -104,10 +114,14 @@ def _dedupe_preserve_order(items: Iterable[str]) -> list[str]:
 
 
 def format_tag_list(items: Sequence[str]) -> str:
+    """Join non-empty tags with commas."""
+    # Filter out falsy items for clean display.
     return ", ".join([item for item in items if item])
 
 
 def normalize_equipment_list(value: Iterable[str] | str) -> list[str]:
+    """Normalize equipment labels into canonical display values."""
+    # Map known aliases and title-case unknown entries.
     items: list[str] = []
     for token in _flatten_tag_input(value):
         key = _normalize_tag_key(token)
@@ -122,6 +136,8 @@ def normalize_equipment_list(value: Iterable[str] | str) -> list[str]:
 
 
 def normalize_muscle_group_list(value: Iterable[str] | str) -> list[str]:
+    """Normalize muscle group labels into canonical display values."""
+    # Map known aliases and title-case unknown entries.
     items: list[str] = []
     for token in _flatten_tag_input(value):
         key = _normalize_tag_key(token)
@@ -137,6 +153,7 @@ def normalize_muscle_group_list(value: Iterable[str] | str) -> list[str]:
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     """Create a connection with foreign keys enabled."""
+    # Enable foreign keys on each new connection.
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
@@ -144,6 +161,7 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
 
 def create_schema(conn: sqlite3.Connection) -> None:
     """Create tables to store exercises and per-goal recommendations."""
+    # Create tables if they do not already exist.
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -212,6 +230,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
 
 def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
     """Add a column only when it is absent to support simple migrations."""
+    # Inspect table columns and append missing fields.
     columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table});")}
     if column not in columns:
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {definition};")
@@ -219,6 +238,7 @@ def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, de
 
 def migrate_schema(conn: sqlite3.Connection) -> None:
     """Ensure newer columns exist for enriched workout logging."""
+    # Apply lightweight schema upgrades for existing databases.
     _add_column_if_missing(conn, "users", "display_name", "display_name TEXT")
     _add_column_if_missing(conn, "users", "preferred_goal", "preferred_goal TEXT")
     _add_column_if_missing(conn, "workouts", "duration_seconds", "duration_seconds INTEGER")
@@ -240,6 +260,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
 
     Existing entries are skipped so reruns remain safe, while missing instructions are filled.
     """
+    # Preload a curated set of exercises for first-time users.
     existing_names = {row[0].strip().lower() for row in conn.execute("SELECT name FROM exercises;")}
 
     exercises = [
@@ -1126,6 +1147,7 @@ def seed_sample_data(conn: sqlite3.Connection) -> None:
 
 def seed_example_user(conn: sqlite3.Connection) -> None:
     """Ensure a sample user exists with a few workouts for previewing the app."""
+    # Create or update a sample profile with starter workouts.
     row = conn.execute(
         "SELECT id, display_name, preferred_goal FROM users WHERE username = ?;",
         (EXAMPLE_USERNAME,),
@@ -1159,6 +1181,8 @@ def seed_example_user(conn: sqlite3.Connection) -> None:
         return
 
     def goal_label(goal: str) -> str:
+        """Convert a goal code into a title-cased label."""
+        # Keep sample workout labels aligned with UI formatting.
         return goal.replace("_", " ").title()
 
     sample_workouts = [
@@ -1218,6 +1242,7 @@ def seed_example_user(conn: sqlite3.Connection) -> None:
 
 def initialize_database(db_path: Optional[Path] = None) -> Path:
     """Create the SQLite database file with schema and seed data."""
+    # Initialize schema and sample content in a single entry point.
     target_path = db_path or DB_PATH
     with get_connection(target_path) as conn:
         create_schema(conn)
@@ -1229,6 +1254,7 @@ def initialize_database(db_path: Optional[Path] = None) -> Path:
 
 def fetch_all(conn: sqlite3.Connection) -> list[tuple]:
     """Helper for quick manual inspection when debugging."""
+    # Return all exercise rows with goal recommendations attached.
     return conn.execute(
         """
         SELECT e.name, e.icon, e.short_description, e.execution_instructions,
@@ -1265,6 +1291,7 @@ def add_exercise(
     Missing goal ratings fall back to DEFAULT_GOAL_RATING.
     Equipment and muscle group inputs are normalized into atomic tags.
     """
+    # Normalize inputs and insert both exercise and goal recommendation rows.
     if goal_ratings is None:
         goal_ratings = {}
     execution_instructions = (execution_instructions or "").strip()
@@ -1333,6 +1360,7 @@ def add_user(
     db_path: Path = DB_PATH,
 ) -> int:
     """Register a new user and return the user id."""
+    # Validate inputs and insert a user row.
     username = username.strip()
     if not username:
         raise ValueError("Username is required.")
@@ -1349,6 +1377,7 @@ def add_user(
 
 def fetch_users(conn: sqlite3.Connection) -> list[tuple[int, str, Optional[str], Optional[str]]]:
     """Return a list of user ids, usernames, display names, and preferred goals."""
+    # Return users in username order for stable UI display.
     return conn.execute(
         "SELECT id, username, display_name, preferred_goal FROM users ORDER BY username;"
     ).fetchall()
@@ -1362,6 +1391,7 @@ def update_user_profile(
     db_path: Path = DB_PATH,
 ) -> None:
     """Update profile details for a user."""
+    # Update the profile fields for an existing user.
     with get_connection(db_path) as conn:
         conn.execute(
             """
@@ -1393,6 +1423,7 @@ def log_workout(
     where status is either "completed" or "skipped". If not provided, all
     exercises are stored as completed.
     """
+    # Validate inputs and write workout plus exercise rows.
     if duration_minutes <= 0:
         raise ValueError("Duration must be positive.")
     cleaned_exercises = [ex.strip() for ex in exercises if ex.strip()]
@@ -1455,6 +1486,7 @@ def fetch_workout_history(
 
     Dates are compared using SQLite's date() to respect YYYY-MM-DD strings.
     """
+    # Build a query with optional date filters, then group by workout id.
     query = """
         SELECT
             w.id,
@@ -1524,6 +1556,7 @@ def fetch_workout_stats(
     db_path: Path = DB_PATH,
 ) -> dict[str, object]:
     """Aggregate stats for a user's workouts."""
+    # Compute totals and top exercise counts with optional date filters.
     stats = {
         "total_workouts": 0,
         "total_minutes": 0,
@@ -1584,6 +1617,7 @@ def fetch_recent_exercise_usage(
 
     Used to bias recommendations toward less recently performed movements.
     """
+    # Limit output to keep the recommendation query efficient.
     filters = ["w.user_id = ?"]
     params: list[object] = [user_id]
     if start_date:

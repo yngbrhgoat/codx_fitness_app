@@ -14,7 +14,10 @@ from main import RootWidget
 
 
 class RecommendationLogicTests(unittest.TestCase):
+    """Tests for recommendation scoring and time estimation."""
     def test_score_recommendation_recency_bonus(self) -> None:
+        """Validate recency bonus values for recommendation scoring."""
+        # Use a lightweight dummy to call the helper as a bound method.
         dummy = object()
         cases = [
             (None, 7.0),
@@ -28,6 +31,8 @@ class RecommendationLogicTests(unittest.TestCase):
             self.assertEqual(score, expected)
 
     def test_estimate_minutes_prefers_time_then_volume(self) -> None:
+        """Ensure estimate logic prefers time then volume fallbacks."""
+        # Cover time-based, rep-based, and fallback estimations.
         dummy = object()
         time_first = RootWidget._estimate_minutes(dummy, {"time_seconds": 125, "sets": 2, "reps": 10})
         volume_based = RootWidget._estimate_minutes(dummy, {"sets": 3, "reps": 10})
@@ -40,14 +45,19 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertEqual(fallback, 5)
 
     def test_completion_percentage_clamped_and_rounded(self) -> None:
+        """Confirm completion percentage clamps to [0, 100]."""
+        # Verify rounding and upper bound behavior.
         dummy = object()
         self.assertEqual(RootWidget._compute_completion_percentage(dummy, 0, 4), 0.0)
         self.assertEqual(RootWidget._compute_completion_percentage(dummy, 3, 4), 75.0)
         self.assertEqual(RootWidget._compute_completion_percentage(dummy, 6, 4), 100.0)  # capped at 100%
 
     def test_tempo_hint_for_reps_rest_and_hold(self) -> None:
+        """Check tempo hints for reps, rest, and holds."""
+        # Build a minimal stub to exercise _update_tempo_hint branches.
         # Build a lightweight stub that satisfies _update_tempo_hint requirements.
         class TempoStub:
+            """Simple stub container for tempo hint tests."""
             pass
 
         stub = TempoStub()
@@ -59,6 +69,8 @@ class RecommendationLogicTests(unittest.TestCase):
         stub.live_tempo_hint = ""
 
         def current_exercise():
+            """Return the current exercise from the stub list."""
+            # Mirror RootWidget._current_live_exercise behavior.
             if 0 <= stub._live_current_index < len(stub.live_exercises):
                 return stub.live_exercises[stub._live_current_index]
             return None
@@ -82,7 +94,10 @@ class RecommendationLogicTests(unittest.TestCase):
 
 
 class HistoryAndStatsTests(unittest.TestCase):
+    """Tests for workout history filtering and stats aggregation."""
     def test_history_filtering_by_date(self) -> None:
+        """Validate filtering history by start/end date."""
+        # Write sample data and verify date boundaries.
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "test.db"
             exercise_database.initialize_database(db_path)
@@ -119,6 +134,8 @@ class HistoryAndStatsTests(unittest.TestCase):
             self.assertEqual(feb_entries[0]["performed_at"], "2024-02-15")
 
     def test_stats_aggregate_and_top_exercise(self) -> None:
+        """Validate stats aggregation and top exercise selection."""
+        # Insert workouts and verify totals and top exercise counts.
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "test.db"
             exercise_database.initialize_database(db_path)
@@ -146,11 +163,16 @@ class HistoryAndStatsTests(unittest.TestCase):
 
 
 class ParsingHelperTests(unittest.TestCase):
+    """Tests for parsing and normalization helpers."""
     def test_split_exercises_normalizes_commas_and_newlines(self) -> None:
+        """Ensure exercise splitting handles commas and newlines."""
+        # Confirm trailing separators and blank lines are ignored.
         result = RootWidget._split_exercises(object(), "Push-Up, Squat\n\nPlank, ")
         self.assertEqual(result, ["Push-Up", "Squat", "Plank"])
 
     def test_parse_date_value_handles_empty_and_invalid(self) -> None:
+        """Ensure date parsing handles empty and invalid inputs."""
+        # Validate empty and malformed input behavior.
         dummy = object()
         self.assertIsNone(RootWidget._parse_date_value(dummy, "  ", allow_empty=True))
         with self.assertRaises(ValueError):
@@ -159,6 +181,8 @@ class ParsingHelperTests(unittest.TestCase):
             RootWidget._parse_date_value(dummy, "2024/01/01")
 
     def test_parse_optional_int_accepts_positive_only(self) -> None:
+        """Ensure optional integer parsing enforces positivity."""
+        # Cover valid input and multiple invalid cases.
         dummy = object()
         self.assertEqual(RootWidget._parse_optional_int(dummy, "7"), 7)
         with self.assertRaises(ValueError):
@@ -169,10 +193,14 @@ class ParsingHelperTests(unittest.TestCase):
             RootWidget._parse_optional_int(dummy, "abc")
 
     def test_normalize_equipment_includes_barbell(self) -> None:
+        """Ensure equipment normalization maps Barbell aliases."""
+        # Use a known alias to confirm normalization.
         items = exercise_database.normalize_equipment_list("Barbell, plates")
         self.assertIn("Barbell", items)
 
     def test_normalize_muscle_groups_expands_posterior_chain(self) -> None:
+        """Ensure muscle normalization expands posterior chain."""
+        # Verify alias expansion into multiple groups.
         items = exercise_database.normalize_muscle_group_list("Posterior chain")
         self.assertIn("Back", items)
         self.assertIn("Legs", items)
@@ -180,7 +208,10 @@ class ParsingHelperTests(unittest.TestCase):
 
 
 class RegressionGuardTests(unittest.TestCase):
+    """Regression tests for edge cases in helpers."""
     def test_validate_history_exercises_blocks_unknown(self) -> None:
+        """Ensure unknown exercises are flagged in history validation."""
+        # Stub the known exercise list to test validation output.
         dummy = SimpleNamespace()
         dummy._known_exercise_names = lambda: {"push-up", "plank"}
 
@@ -189,6 +220,8 @@ class RegressionGuardTests(unittest.TestCase):
         self.assertIsNone(RootWidget._validate_history_exercises(dummy, ["Plank"]))
 
     def test_resolve_equipment_choice_prefers_available_option(self) -> None:
+        """Ensure equipment choice prefers valid options and fallback."""
+        # Validate Bodyweight preference when present.
         dummy = SimpleNamespace(equipment_choice_options=["Barbell", "Bands"])
         first_choice = RootWidget._resolve_equipment_choice(dummy, "")
         self.assertEqual(first_choice, "Barbell")
@@ -201,6 +234,8 @@ class RegressionGuardTests(unittest.TestCase):
         self.assertEqual(fallback, "Bodyweight")
 
     def test_toggle_recommendation_details_uses_boolean(self) -> None:
+        """Ensure detail toggling flips boolean state per item."""
+        # Use stubs to avoid Kivy dependencies.
         rec_list = SimpleNamespace(data=[], refresh_from_data=lambda: None)
         rec_screen = SimpleNamespace(ids=SimpleNamespace(rec_list=rec_list))
         dummy = SimpleNamespace(
@@ -221,6 +256,8 @@ class RegressionGuardTests(unittest.TestCase):
         self.assertFalse(dummy.rec_recommendations[0]["show_details"])
 
     def test_plan_goal_label_handles_mixed_goals(self) -> None:
+        """Ensure plan goal labeling handles mixed goals."""
+        # Verify mixed goals report as "Multiple goals".
         multi = SimpleNamespace(rec_plan=[{"goal_label": "Muscle Building"}, {"goal_label": "Weight Loss"}])
         self.assertEqual(RootWidget._plan_goal_label(multi), "Multiple goals")
 
@@ -228,6 +265,8 @@ class RegressionGuardTests(unittest.TestCase):
         self.assertEqual(RootWidget._plan_goal_label(single), "Endurance")
 
     def test_generate_recommendations_keeps_existing_plan(self) -> None:
+        """Ensure recommendation generation does not clear a valid plan."""
+        # Use a stub with a pre-existing plan entry.
         rec_list = SimpleNamespace(data=[], refresh_from_data=lambda: None)
         rec_ids = SimpleNamespace(rec_max_time=SimpleNamespace(text="30"), rec_list=rec_list)
         rec_screen = SimpleNamespace(ids=rec_ids)
